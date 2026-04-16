@@ -1,14 +1,11 @@
 ## [PERSONAL NOTE] Why I built this?
 
-I'm Edison, a Filipino (OFW) working abroad in Czech Republic.
-I built EdisonDB because I believe the world deserves a database
-that respects the people who use it — one that is private by default,
-not by configuration, and intelligent without phoning home.
+"Light for your data."
 
-This is a one-person project right now. The code is coming.
-The philosophy is already written. I'm building in public
-because I have nothing to hide and everything to prove.
+​Hey everyone. I'm Edison, a Filipino currently working as an OFW here in the Czech Republic.
 
+​I’m building EdisonDB mainly because I got tired of the way modern databases handle our data. With the new EU AI Act and the whole industry finally shifting toward sovereign data laws, the timing just made sense. I figured it was time to heed the call and build a database that actually respects our privacy—one that is encrypted by default (not just when you remember to configure it) and lets you use AI without sending all your data to some external cloud API.
+​Right now, it's just me coding this after my day job. The code is still a work in progress, but the philosophy is set in stone. I'm building this in public because I have nothing to hide, and I just really want to make something useful for the community.
 
 
 <div align="center">
