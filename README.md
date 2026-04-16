@@ -1,3 +1,16 @@
+## [PERSONAL NOTE] Why I built this?
+
+I'm Edison, a Filipino (OFW) working abroad in Czech Republic.
+I built EdisonDB because I believe the world deserves a database
+that respects the people who use it — one that is private by default,
+not by configuration, and intelligent without phoning home.
+
+This is a one-person project right now. The code is coming.
+The philosophy is already written. I'm building in public
+because I have nothing to hide and everything to prove.
+
+
+
 <div align="center">
 
 <img src="https://img.shields.io/badge/EdisonDB-v0.1--alpha-gold?style=for-the-badge" alt="version"/>
