@@ -2,9 +2,9 @@
 
 "Light for your data."
 
-​Hey everyone. I'm Edison, a Filipino currently working as an OFW here in the Czech Republic.
+​Hello everyone. I'm Edison, a Filipino currently working as an (OFW) here in the Czech Republic.
 
-​I’m building EdisonDB mainly because I got tired of the way modern databases handle our data. With the new EU AI Act and the whole industry finally shifting toward sovereign data laws, the timing just made sense. I figured it was time to heed the call and build a database that actually respects our privacy—one that is encrypted by default (not just when you remember to configure it) and lets you use AI without sending all your data to some external cloud API.
+​I’m building EdisonDB mainly because I just don't like perhaps tired of the way modern databases handle our data. With the new EU AI Act and the whole industry finally shifting toward sovereign data laws, the timing just made sense. I figured it was time to heed the call and build a database that actually respects our privacy—one that is encrypted by default (not just when you remember to configure it) and lets you use AI without sending all your data to some external cloud API.
 ​Right now, it's just me coding this after my day job. The code is still a work in progress, but the philosophy is set in stone. I'm building this in public because I have nothing to hide, and I just really want to make something useful for the community.
 
 
