@@ -57,11 +57,63 @@ fn now() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
+use std::collections::HashMap;
 
+pub struct Store {
+    records: HashMap<u64, Record>,
+}
+
+impl Store {
+    pub fn new() -> Self {
+        Store {
+            records: HashMap::new(),
+        }
+    }
+
+    pub fn write(&mut self, record: Record) {
+        self.records.insert(record.id, record);
+    }
+
+    pub fn read(
+        &self,
+        id: u64,
+        requester_id: &str,
+    ) -> Result<&Record, EdisonError> {
+        match self.records.get(&id) {
+            None => Err(EdisonError::NotFound),
+            Some(record) => {
+                if record.is_readable_by(requester_id) {
+                    Ok(record)
+                } else {
+                    Err(EdisonError::AccessDenied)
+                }
+            }
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+#[test]
+    fn owner_can_read_stored_record() {
+        let mut store = Store::new();
+        let r = Record::new(10, DataTier::Personal,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        assert!(store.read(10, "owner_abc").is_ok());
+    }
 
+    #[test]
+    fn attacker_cannot_read_stored_record() {
+        let mut store = Store::new();
+        let r = Record::new(11, DataTier::Critical,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        assert_eq!(
+            store.read(11, "attacker"),
+            Err(EdisonError::AccessDenied)
+        );
+    }
     #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
