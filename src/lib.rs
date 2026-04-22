@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -8,7 +9,7 @@ pub enum DataTier {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Record {   
+pub struct Record {
     pub id: u64,
     pub tier: DataTier,
     pub owner_id: String,
@@ -51,26 +52,41 @@ pub enum EdisonError {
     NotFound,
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
+#[derive(Debug, Clone)]
+pub enum AuditAction {
+    Write,
+    ReadGranted,
+    ReadDenied,
 }
-use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct AuditEntry {
+    pub record_id: u64,
+    pub requester_id: String,
+    pub action: AuditAction,
+    pub timestamp: u64,
+}
 
 pub struct Store {
     records: HashMap<u64, Record>,
+    audit_log: Vec<AuditEntry>,
 }
 
 impl Store {
     pub fn new() -> Self {
         Store {
             records: HashMap::new(),
+            audit_log: Vec::new(),
         }
     }
 
     pub fn write(&mut self, record: Record) {
+        self.audit_log.push(AuditEntry {
+            record_id: record.id,
+            requester_id: record.owner_id.clone(),
+            action: AuditAction::Write,
+            timestamp: now(),
+        });
         self.records.insert(record.id, record);
     }
 
@@ -90,30 +106,23 @@ impl Store {
             }
         }
     }
+
+    pub fn audit_count(&self) -> usize {
+        self.audit_log.len()
+    }
 }
+
+fn now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-#[test]
-    fn owner_can_read_stored_record() {
-        let mut store = Store::new();
-        let r = Record::new(10, DataTier::Personal,
-            "owner_abc", vec![1,2,3]).unwrap();
-        store.write(r);
-        assert!(store.read(10, "owner_abc").is_ok());
-    }
 
-    #[test]
-    fn attacker_cannot_read_stored_record() {
-        let mut store = Store::new();
-        let r = Record::new(11, DataTier::Critical,
-            "owner_abc", vec![1,2,3]).unwrap();
-        store.write(r);
-        assert_eq!(
-            store.read(11, "attacker"),
-            Err(EdisonError::AccessDenied)
-        );
-    }
     #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
@@ -156,4 +165,46 @@ mod tests {
             "owner_abc", vec![]).unwrap();
         assert!(r.created_at > 0);
     }
+
+    #[test]
+    fn owner_can_read_stored_record() {
+        let mut store = Store::new();
+        let r = Record::new(10, DataTier::Personal,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        assert!(store.read(10, "owner_abc").is_ok());
+    }
+
+    #[test]
+    fn attacker_cannot_read_stored_record() {
+        let mut store = Store::new();
+        let r = Record::new(11, DataTier::Critical,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        assert_eq!(
+            store.read(11, "attacker"),
+            Err(EdisonError::AccessDenied)
+        );
+    }
+
+    #[test]
+    fn write_creates_audit_entry() {
+        let mut store = Store::new();
+        let r = Record::new(20, DataTier::Personal,
+            "owner_abc", vec![1]).unwrap();
+        store.write(r);
+        assert_eq!(store.audit_count(), 1);
+    }
+
+    #[test]
+    fn multiple_writes_all_audited() {
+        let mut store = Store::new();
+        for i in 0..5 {
+            let r = Record::new(i, DataTier::Noise,
+                "owner_abc", vec![]).unwrap();
+            store.write(r);
+        }
+        assert_eq!(store.audit_count(), 5);
+    }
 }
+
