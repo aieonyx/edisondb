@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataTier {
     Critical,
     Personal,
     Noise,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Record {
     pub id: u64,
     pub tier: DataTier,
@@ -50,16 +51,18 @@ pub enum EdisonError {
     NoOwner,
     AccessDenied,
     NotFound,
+    SaveFailed,
+    LoadFailed,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditAction {
     Write,
     ReadGranted,
     ReadDenied,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEntry {
     pub record_id: u64,
     pub requester_id: String,
@@ -122,6 +125,25 @@ impl Store {
     pub fn audit_count(&self) -> usize {
         self.audit_log.len()
     }
+pub fn save(&self, path: &str) -> Result<(), EdisonError> {
+        let data = serde_json::to_string(&self.records)
+            .map_err(|_| EdisonError::SaveFailed)?;
+        std::fs::write(path, data)
+            .map_err(|_| EdisonError::SaveFailed)?;
+        Ok(())
+    }
+
+    pub fn load(path: &str) -> Result<Self, EdisonError> {
+        let data = std::fs::read_to_string(path)
+            .map_err(|_| EdisonError::LoadFailed)?;
+        let records = serde_json::from_str(&data)
+            .map_err(|_| EdisonError::LoadFailed)?;
+        Ok(Store {
+            records,
+            audit_log: Vec::new(),
+        })
+    }
+
 }
 
 fn now() -> u64 {
@@ -134,7 +156,18 @@ fn now() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    
+    #[test]
+    fn store_saves_and_loads() {
+        let mut store = Store::new();
+        let r = Record::new(40, DataTier::Personal,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        store.save("/tmp/test_edison.json").unwrap();
+        let loaded = Store::load("/tmp/test_edison.json").unwrap();
+        let record = loaded.records.get(&40).unwrap();
+        assert_eq!(record.owner_id, "owner_abc");
+    }
     #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
