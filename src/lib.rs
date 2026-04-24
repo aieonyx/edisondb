@@ -91,7 +91,7 @@ impl Store {
     }
 
     pub fn read(
-        &self,
+        &mut self,
         id: u64,
         requester_id: &str,
     ) -> Result<&Record, EdisonError> {
@@ -99,8 +99,20 @@ impl Store {
             None => Err(EdisonError::NotFound),
             Some(record) => {
                 if record.is_readable_by(requester_id) {
+                    self.audit_log.push(AuditEntry {
+                        record_id: id,
+                        requester_id: requester_id.to_string(),
+                        action: AuditAction::ReadGranted,
+                        timestamp: now(),
+                    });
                     Ok(record)
                 } else {
+                    self.audit_log.push(AuditEntry {
+                        record_id: id,
+                        requester_id: requester_id.to_string(),
+                        action: AuditAction::ReadDenied,
+                        timestamp: now(),
+                    });
                     Err(EdisonError::AccessDenied)
                 }
             }
@@ -206,5 +218,24 @@ mod tests {
         }
         assert_eq!(store.audit_count(), 5);
     }
-}
 
+    #[test]
+    fn granted_read_is_audited() {
+        let mut store = Store::new();
+        let r = Record::new(30, DataTier::Personal,
+            "owner_abc", vec![1]).unwrap();
+        store.write(r);
+        let _ = store.read(30, "owner_abc");
+        assert_eq!(store.audit_count(), 2);
+    }
+
+    #[test]
+    fn denied_read_is_audited() {
+        let mut store = Store::new();
+        let r = Record::new(31, DataTier::Critical,
+            "owner_abc", vec![1]).unwrap();
+        store.write(r);
+        let _ = store.read(31, "attacker");
+        assert_eq!(store.audit_count(), 2);
+    }
+}
