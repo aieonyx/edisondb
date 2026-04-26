@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Serialize, Deserialize};
+use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::aead::{Aead, KeyInit};
+use rand::RngCore;
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataTier {
@@ -153,10 +157,62 @@ fn now() -> u64 {
         .as_secs()
 }
 
+pub fn encrypt_payload(
+    data: &[u8],
+    key: &[u8; 32],
+) -> Result<Vec<u8>, EdisonError> {
+    let key = Key::<Aes256Gcm>::from_slice(key);
+    let cipher = Aes256Gcm::new(key);
+    let mut nonce_bytes = [0u8; 12];
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let mut encrypted = cipher
+        .encrypt(nonce, data)
+        .map_err(|_| EdisonError::SaveFailed)?;
+    let mut result = nonce_bytes.to_vec();
+    result.append(&mut encrypted);
+    Ok(result)
+}
+
+pub fn decrypt_payload(
+    data: &[u8],
+    key: &[u8; 32],
+) -> Result<Vec<u8>, EdisonError> {
+    if data.len() < 12 {
+        return Err(EdisonError::LoadFailed);
+    }
+    let (nonce_bytes, encrypted) = data.split_at(12);
+    let key = Key::<Aes256Gcm>::from_slice(key);
+    let cipher = Aes256Gcm::new(key);
+    let nonce = Nonce::from_slice(nonce_bytes);
+    cipher
+        .decrypt(nonce, encrypted)
+        .map_err(|_| EdisonError::LoadFailed)
+}
+
+
+
+
+
+
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
     
+#[test]
+    fn payload_encrypts_and_decrypts() {
+        let key = [0u8; 32];
+        let original = b"sovereign data";
+        let encrypted = encrypt_payload(original, &key).unwrap();
+        assert_ne!(encrypted, original.to_vec());
+        let decrypted = decrypt_payload(&encrypted, &key).unwrap();
+        assert_eq!(decrypted, original);
+    }
+
+
     #[test]
     fn store_saves_and_loads() {
         let mut store = Store::new();
