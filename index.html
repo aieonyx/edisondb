@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="EdisonDB — The sovereign, AI-native, multi-model database engine. Built in Rust. Encrypted by default. Yours forever.">
+<title>EdisonDB — Light for your data.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#D4A843;
+  --gold-light:#E8C065;
+  --cyan:#22D3EE;
+  --green:#10B981;
+  --red:#F87171;
+  --amber:#F59E0B;
+  --bg:#0A0B0F;
+  --surface:#111318;
+  --surface2:#191C23;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
+  --text:#F0EDE8;
+  --text2:#9CA3AF;
+  --text3:#6B7280;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;height:60px;display:flex;align-items:center;padding:0 32px;border-bottom:1px solid var(--border);background:rgba(10,11,15,0.92);backdrop-filter:blur(16px)}
+.nav-brand{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--gold);text-decoration:none;letter-spacing:-0.3px}
+.nav-links{display:flex;gap:32px;list-style:none;margin-left:48px}
+.nav-links a{font-size:13px;color:var(--text2);text-decoration:none;letter-spacing:0.2px;transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-right{margin-left:auto;display:flex;gap:12px;align-items:center}
+.btn-ghost{font-size:13px;color:var(--text2);text-decoration:none;padding:6px 14px;border:1px solid var(--border);border-radius:6px;transition:all .15s}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-gold{font-size:13px;font-weight:500;color:#0A0B0F;background:var(--gold);text-decoration:none;padding:7px 16px;border-radius:6px;transition:background .15s}
+.btn-gold:hover{background:var(--gold-light)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 1000px 600px at 50% 0%,rgba(212,168,67,0.06) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;color:var(--cyan);background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);padding:5px 14px;border-radius:100px;margin-bottom:36px}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(48px,8vw,88px);line-height:1;letter-spacing:-2px;color:var(--text);margin-bottom:24px}
+.hero h1 .accent{color:var(--gold)}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--text2);max-width:560px;margin:0 auto 16px;line-height:1.6}
+.hero-tagline{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text3);margin-bottom:44px;letter-spacing:0.05em}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:64px}
+.btn-primary{font-size:14px;font-weight:500;color:#0A0B0F;background:var(--gold);text-decoration:none;padding:12px 28px;border-radius:8px;transition:all .15s;display:inline-block}
+.btn-primary:hover{background:var(--gold-light);transform:translateY(-1px)}
+.btn-secondary{font-size:14px;color:var(--text);border:1px solid var(--border2);text-decoration:none;padding:12px 28px;border-radius:8px;transition:all .15s;display:inline-block}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.25);transform:translateY(-1px)}
+
+/* STATS */
+.stats{display:flex;gap:0;justify-content:center;border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:640px;margin:0 auto}
+.stat{flex:1;padding:20px 24px;text-align:center;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:var(--gold);display:block;margin-bottom:4px}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:0.06em}
+
+/* SECTION */
+.section{padding:96px 24px;max-width:1100px;margin:0 auto}
+.section-sm{padding:64px 24px;max-width:1100px;margin:0 auto}
+.label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;color:var(--cyan);text-transform:uppercase;margin-bottom:16px;display:block}
+h2{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-1px;color:var(--text);margin-bottom:20px}
+h2 .gold{color:var(--gold)}
+.desc{font-size:17px;color:var(--text2);line-height:1.7;max-width:640px;margin-bottom:48px}
+.divider{border:none;border-top:1px solid var(--border);margin:0}
+
+/* COMMUNITY BANNER */
+.community{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:64px 24px;text-align:center}
+.community-inner{max-width:760px;margin:0 auto}
+.community h2{margin-bottom:16px}
+.community .desc{margin:0 auto 36px}
+.eco-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.eco-tag{font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 14px;border-radius:100px;border:1px solid}
+.eco-tag.db{color:var(--gold);border-color:rgba(212,168,67,0.3);background:rgba(212,168,67,0.06)}
+.eco-tag.bastion{color:var(--red);border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.06)}
+.eco-tag.mesh{color:var(--cyan);border-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.06)}
+.eco-tag.aegis{color:var(--green);border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06)}
+
+/* IAM */
+.iam-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:40px}
+.iam-card{background:var(--surface);padding:32px}
+.iam-card.highlight{background:rgba(212,168,67,0.04)}
+.iam-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:4px 10px;border-radius:100px;border:1px solid;display:inline-block;margin-bottom:16px}
+.iam-card:first-child .iam-tag{color:var(--text3);border-color:var(--border2)}
+.iam-card.highlight .iam-tag{color:var(--gold);border-color:rgba(212,168,67,0.3);background:rgba(212,168,67,0.06)}
+.iam-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px;color:var(--text)}
+.iam-card.highlight .iam-title{color:var(--gold)}
+.iam-text{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.iam-visual{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2}
+.field{color:var(--text3)}
+.blocked{color:rgba(248,113,113,0.6)}
+.allowed{color:var(--green)}
+
+/* TIERS */
+.tier-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:40px}
+.tier{background:var(--surface);padding:28px 32px;display:flex;gap:24px;align-items:flex-start;border-left:3px solid transparent}
+.tier.critical{border-left-color:var(--red)}
+.tier.personal{border-left-color:var(--gold)}
+.tier.noise{border-left-color:var(--cyan)}
+.tier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.tier.critical .tier-dot{background:var(--red)}
+.tier.personal .tier-dot{background:var(--gold)}
+.tier.noise .tier-dot{background:var(--cyan)}
+.tier-body{}
+.tier-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:4px}
+.tier.critical .tier-name{color:var(--red)}
+.tier.personal .tier-name{color:var(--gold)}
+.tier.noise .tier-name{color:var(--cyan)}
+.tier-examples{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:8px;letter-spacing:0.02em}
+.tier-rule{font-size:14px;color:var(--text2);line-height:1.6}
+
+/* CODE */
+.code{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2;overflow-x:auto;margin-top:40px}
+.c{color:var(--text3)}
+.k{color:var(--gold)}
+.t-crit{color:var(--red)}
+.t-pers{color:var(--amber)}
+.t-nois{color:var(--cyan)}
+.s{color:var(--green)}
+
+/* S4+I */
+.s4i-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:40px}
+.s4i{background:var(--surface);padding:28px 24px;transition:background .15s}
+.s4i:hover{background:var(--surface2)}
+.s4i-icon{font-size:20px;margin-bottom:16px;display:block}
+.s4i-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);letter-spacing:0.1em;display:block;margin-bottom:6px}
+.s4i-name{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;color:var(--text);margin-bottom:8px}
+.s4i-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* PROMISE */
+.promise-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:40px}
+.promise{background:var(--surface);padding:28px;display:flex;gap:20px;align-items:flex-start;transition:background .15s}
+.promise:hover{background:var(--surface2)}
+.p-num{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:var(--gold);opacity:0.18;line-height:1;flex-shrink:0}
+.p-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px}
+.p-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ROADMAP */
+.roadmap{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:40px}
+.rm{background:var(--surface);padding:28px 32px;display:flex;gap:32px;align-items:flex-start;transition:background .15s}
+.rm:hover{background:var(--surface2)}
+.rm-phase{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;flex-shrink:0;width:72px;padding-top:3px;letter-spacing:0.06em}
+.rm.p1 .rm-phase{color:var(--green)}
+.rm.p2 .rm-phase{color:var(--gold)}
+.rm.p3 .rm-phase{color:var(--cyan)}
+.rm.p4 .rm-phase{color:var(--text3)}
+.rm-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:6px}
+.rm-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* QUOTE */
+.quote{border-left:2px solid var(--gold);padding:20px 28px;background:rgba(212,168,67,0.04);border-radius:0 8px 8px 0;margin:40px 0;font-size:17px;font-style:italic;color:var(--text2);line-height:1.7}
+
+/* FOUNDER NOTE */
+.founder{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;margin-top:48px}
+.founder-text{font-size:15px;color:var(--text2);line-height:1.8;margin-bottom:20px;font-style:italic}
+.founder-attr{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:0.06em}
+
+/* CTA */
+.cta-section{padding:96px 24px;text-align:center;background:radial-gradient(ellipse 800px 400px at 50% 100%,rgba(212,168,67,0.05),transparent)}
+.cta-section h2{margin-bottom:16px}
+.cta-sub{font-size:17px;color:var(--text2);max-width:440px;margin:0 auto 40px;line-height:1.6}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);padding:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-brand{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--gold)}
+.footer-links{display:flex;gap:24px;list-style:none}
+.footer-links a{font-size:13px;color:var(--text3);text-decoration:none;transition:color .15s}
+.footer-links a:hover{color:var(--text2)}
+.footer-copy{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+@media(max-width:768px){
+  .nav-links{display:none}
+  .iam-grid{grid-template-columns:1fr}
+  .stats{flex-direction:column}
+  .stat{border-right:none;border-bottom:1px solid var(--border)}
+  .stat:last-child{border-bottom:none}
+  .footer{flex-direction:column;text-align:center}
+  .rm{flex-direction:column;gap:8px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-brand">EdisonDB</a>
+  <ul class="nav-links">
+    <li><a href="#sovereignty">Sovereignty</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#promise">Promise</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="https://aieonyx.com">AIEONYX</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://github.com/aieonyx/edisondb/blob/docs/PHILOSOPHY.md" class="btn-ghost">Manifesto</a>
+    <a href="https://github.com/aieonyx/edisondb" class="btn-gold">Star on GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div>
+    <div class="hero-badge">AIEONYX Ecosystem &nbsp;·&nbsp; Active Development</div>
+    <h1><span class="accent">Light</span> for<br>your data.</h1>
+    <p class="hero-sub">SQLite with teeth. The sovereign, AI-native database that treats your data the way the law always intended — as yours.</p>
+    <p class="hero-tagline">S4+i &nbsp;·&nbsp; Security &nbsp;·&nbsp; Speed &nbsp;·&nbsp; Sovereignty &nbsp;·&nbsp; Simplicity &nbsp;·&nbsp; Intelligence</p>
+    <div class="hero-actions">
+      <a href="https://github.com/aieonyx/edisondb" class="btn-primary">★ &nbsp;Star on GitHub</a>
+      <a href="https://github.com/aieonyx/edisondb/blob/docs/PHILOSOPHY.md" class="btn-secondary">Read the Manifesto</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-val">&lt;15 MB</span><span class="stat-label">Single Binary</span></div>
+      <div class="stat"><span class="stat-val">AES-256</span><span class="stat-label">Always On</span></div>
+      <div class="stat"><span class="stat-val">0</span><span class="stat-label">Telemetry</span></div>
+      <div class="stat"><span class="stat-val">Apache 2.0</span><span class="stat-label">Forever</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- COMMUNITY -->
+<div class="community">
+  <div class="community-inner">
+    <span class="label">AIEONYX Ecosystem</span>
+    <h2>A <span class="gold">Smart Digital Sovereign</span> Community</h2>
+    <p class="desc">AIEONYX is not a product. It is a community of devices and people who protect each other, remember each other's data through any catastrophe, and refuse to surrender their digital lives to corporations or governments.</p>
+    <div class="eco-row">
+      <span class="eco-tag db">◆ EdisonDB — Sovereign Data</span>
+      <span class="eco-tag bastion">🛡 BASTION — Home Fortress</span>
+      <span class="eco-tag mesh">⬡ Mesh Network — Resilience</span>
+      <span class="eco-tag aegis">⚡ Aegis Collective — Defense</span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- PARADIGM -->
+<div class="section">
+  <span class="label">The Shift</span>
+  <h2>The world changed.<br>The database didn't.</h2>
+  <p class="desc">Every database before EdisonDB was built for a world where data traveled to intelligence, and servers owned what users created. EdisonDB is built for the world we are entering — where intelligence travels to data, and users own what they create.</p>
+  <div class="quote">That shift is not optional anymore. The law is making it mandatory. EdisonDB makes it buildable.</div>
+</div>
+
+<hr class="divider">
+
+<!-- IAM -->
+<div class="section" id="sovereignty">
+  <span class="label">Core Concept</span>
+  <h2>The Inverted<br>Administration Model</h2>
+  <p class="desc">In every database today, the platform is the database administrator. The user is a row in someone else's table. EdisonDB reverses this — completely.</p>
+  <div class="iam-grid">
+    <div class="iam-card">
+      <span class="iam-tag">Traditional Model</span>
+      <div class="iam-title">Platform = Administrator</div>
+      <div class="iam-text">Full schema access, full data control. You are a guest in someone else's system with no rights to your own information.</div>
+      <div class="iam-visual">
+        <span class="field">BDAY &nbsp;&nbsp;│ </span><span class="allowed">2/18/1990 &nbsp;← visible to platform</span><br>
+        <span class="field">EMAIL &nbsp;│ </span><span class="allowed">you@mail.com ← visible to platform</span><br>
+        <span class="field">HEALTH │ </span><span class="allowed">Hypertension &nbsp;← visible to platform</span>
+      </div>
+    </div>
+    <div class="iam-card highlight">
+      <span class="iam-tag">EdisonDB Model</span>
+      <div class="iam-title">User = Administrator</div>
+      <div class="iam-text">Platform receives only what you chose to publish. Critical and Personal data is structurally unreachable — not by policy, by architecture.</div>
+      <div class="iam-visual">
+        <span class="field">BDAY &nbsp;&nbsp;│ </span><span class="blocked">████████ &nbsp;← structurally blocked</span><br>
+        <span class="field">EMAIL &nbsp;│ </span><span class="blocked">████████ &nbsp;← structurally blocked</span><br>
+        <span class="field">POST &nbsp;&nbsp;│ </span><span class="allowed">Hello world ← noise tier, ok</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- TIERS -->
+<div class="section">
+  <span class="label">Architecture</span>
+  <h2>Tiered Data<br><span class="gold">Sovereignty</span></h2>
+  <p class="desc">Not all data is created equal. EdisonDB enforces this at the storage engine layer — not as a query-layer policy, not as a legal promise. As a fundamental database primitive.</p>
+  <div class="tier-list">
+    <div class="tier critical">
+      <div class="tier-dot"></div>
+      <div class="tier-body">
+        <div class="tier-name">Critical Tier</div>
+        <div class="tier-examples">Medical records · Biometrics · Private messages · Financial data · Location history</div>
+        <div class="tier-rule">Encrypted with user-held keys. Never leaves your device. Structurally unreachable by any platform, Connector, or network request — regardless of claimed permissions. The storage engine never decrypts this for non-owner callers.</div>
+      </div>
+    </div>
+    <div class="tier personal">
+      <div class="tier-dot"></div>
+      <div class="tier-body">
+        <div class="tier-name">Personal Tier</div>
+        <div class="tier-examples">Name · Email · Preferences · Purchase history · Behavioral data</div>
+        <div class="tier-rule">Accessible only to applications you explicitly trust, under consent you control and can revoke instantly. When the session ends, access ends. No residue. Treated like a paying transaction.</div>
+      </div>
+    </div>
+    <div class="tier noise">
+      <div class="tier-dot"></div>
+      <div class="tier-body">
+        <div class="tier-name">Noise Tier</div>
+        <div class="tier-examples">Public posts · Reactions · Display name · Published content</div>
+        <div class="tier-rule">Data you chose to make public. Your act of publishing was the consent. Syncs freely to platforms. Auto-purged after 30 days per EU CCTV data retention law. Your local copy is yours indefinitely.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code">
+<span class="c">-- Declare sovereignty at schema level</span><br>
+<span class="k">CREATE TABLE</span> user_profile (<br>
+&nbsp;&nbsp;biometrics &nbsp;&nbsp;blob &nbsp;<span class="t-crit">TIER CRITICAL</span>, &nbsp;<span class="c">-- never leaves device</span><br>
+&nbsp;&nbsp;email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text &nbsp;<span class="t-pers">TIER PERSONAL</span>, &nbsp;<span class="c">-- user-consented</span><br>
+&nbsp;&nbsp;display_name text &nbsp;<span class="t-nois">TIER NOISE</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="c">-- platform-accessible</span><br>
+);<br><br>
+<span class="c">-- Vector search — native, no extension needed</span><br>
+<span class="k">SELECT</span> * <span class="k">FROM</span> memories<br>
+&nbsp;&nbsp;<span class="k">VECTOR SEARCH</span> <span class="s">'recent security events'</span><br>
+&nbsp;&nbsp;<span class="k">LIMIT</span> 10 <span class="k">SIMILARITY</span> > 0.85;<br><br>
+<span class="c">-- Auto-embed locally — no external API, no Python</span><br>
+<span class="k">INSERT INTO</span> docs (title, content)<br>
+&nbsp;&nbsp;<span class="k">VALUES</span> (<span class="s">'Report'</span>, <span class="s">'Full text...'</span>)<br>
+&nbsp;&nbsp;<span class="k">AUTO EMBED</span> content <span class="k">INTO</span> embedding;
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- S4+I -->
+<div class="section" id="features">
+  <span class="label">Philosophy</span>
+  <h2>The S4+i Framework</h2>
+  <p class="desc">Every decision in EdisonDB — from encryption algorithm to error message wording — is evaluated against S4+i. This is not a marketing tagline. It is an architectural contract.</p>
+  <div class="s4i-grid">
+    <div class="s4i">
+      <span class="s4i-icon">🔒</span>
+      <span class="s4i-code">S1 &nbsp;·&nbsp; Security</span>
+      <div class="s4i-name">Born Encrypted</div>
+      <div class="s4i-desc">Data is born encrypted. Access is born restricted. Trust is born zero. Security is not configured — it is a property of existence.</div>
+    </div>
+    <div class="s4i">
+      <span class="s4i-icon">⚡</span>
+      <span class="s4i-code">S2 &nbsp;·&nbsp; Speed</span>
+      <div class="s4i-name">Rust-Native</div>
+      <div class="s4i-desc">Sub-millisecond local queries. Zero-cost abstractions. Fast at every scale from embedded IoT to distributed clusters.</div>
+    </div>
+    <div class="s4i">
+      <span class="s4i-icon">🏛️</span>
+      <span class="s4i-code">S3 &nbsp;·&nbsp; Sovereignty</span>
+      <div class="s4i-name">Your Keys, Your Law</div>
+      <div class="s4i-desc">Your data. Your device. Your keys. Apache 2.0 forever. No vendor lock-in. No government backdoor. No corporation between you and your data.</div>
+    </div>
+    <div class="s4i">
+      <span class="s4i-icon">🌿</span>
+      <span class="s4i-code">S4 &nbsp;·&nbsp; Simplicity</span>
+      <div class="s4i-name">15-Minute Promise</div>
+      <div class="s4i-desc">Zero-config start. SQL-first. If you're not productive in 15 minutes, the documentation failed — not you.</div>
+    </div>
+    <div class="s4i">
+      <span class="s4i-icon">🧠</span>
+      <span class="s4i-code">+i &nbsp;·&nbsp; Intelligence</span>
+      <div class="s4i-name">AI in the Engine</div>
+      <div class="s4i-desc">AI woven into the storage engine. Local inference only via Candle (Rust). No Python runtime. No external API. No data leaves the machine.</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- PROMISE -->
+<div class="section" id="promise">
+  <span class="label">The Contract</span>
+  <h2>Seven irrevocable<br>promises.</h2>
+  <p class="desc">These promises were written before the first line of production code. They will outlast any business decision, any funding round, and any change in circumstance.</p>
+  <div class="promise-grid">
+    <div class="promise"><div class="p-num">I</div><div><div class="p-title">Always Free</div><div class="p-desc">EdisonDB Core is free forever. No subscription. No expiry. No usage cap. No exceptions.</div></div></div>
+    <div class="promise"><div class="p-num">II</div><div><div class="p-title">Apache 2.0 Forever</div><div class="p-desc">This license will never be downgraded. The Connector converts to Apache 2.0 on January 1, 2030.</div></div></div>
+    <div class="promise"><div class="p-num">III</div><div><div class="p-title">No Feature Gating</div><div class="p-desc">Free features stay free. Nothing moves behind a paywall. What's open stays open.</div></div></div>
+    <div class="promise"><div class="p-num">IV</div><div><div class="p-title">Zero Telemetry</div><div class="p-desc">The binary never phones home. No analytics. No beacons. No "anonymous statistics." Zero exceptions.</div></div></div>
+    <div class="promise"><div class="p-num">V</div><div><div class="p-title">Reproducible Builds</div><div class="p-desc">Any person with a Rust toolchain can build a byte-for-byte identical binary from public source.</div></div></div>
+    <div class="promise"><div class="p-num">VI</div><div><div class="p-title">Public Governance</div><div class="p-desc">All significant decisions discussed and made in public. No hidden roadmaps. No private deals.</div></div></div>
+    <div class="promise"><div class="p-num">VII</div><div><div class="p-title">Forking Welcome</div><div class="p-desc">Fork it. Build on it. Compete with it. Legally and morally always welcome. We will never threaten a fork.</div></div></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ROADMAP -->
+<div class="section" id="roadmap">
+  <span class="label">Timeline</span>
+  <h2>Roadmap</h2>
+  <div class="roadmap">
+    <div class="rm p1">
+      <div class="rm-phase">PHASE 1<br>Building now</div>
+      <div>
+        <div class="rm-title">EdisonDB 0.1 Alpha</div>
+        <div class="rm-desc">EQL parser · AES-256-GCM encryption · Tier Enforcement Engine (storage layer) · edctl CLI · EdisonDB Connector v1 · Rust SDK · EDQP protocol · PostgreSQL wire protocol</div>
+      </div>
+    </div>
+    <div class="rm p2">
+      <div class="rm-phase">PHASE 2</div>
+      <div>
+        <div class="rm-title">EdisonDB 0.5 Beta</div>
+        <div class="rm-desc">LSM-tree engine · HNSW vector index · Auto-embedding pipeline · REST + gRPC · Python + TypeScript SDKs · EdisonDB Studio · Digital Legacy system · Regional Compliance Profiles · Aggregation Awareness Layer</div>
+      </div>
+    </div>
+    <div class="rm p3">
+      <div class="rm-phase">PHASE 3</div>
+      <div>
+        <div class="rm-title">EdisonDB 1.0 + AIEONYX BASTION v1</div>
+        <div class="rm-desc">Full production engine · Raft cluster · BASTION Security Domain (DPI, behavioral AI, seL4 partitioning) · Ghost Fragment Hosting · Biometric sovereign recovery · Aegis Collective local mesh · BASTION hardware certification</div>
+      </div>
+    </div>
+    <div class="rm p4">
+      <div class="rm-phase">PHASE 4</div>
+      <div>
+        <div class="rm-title">EdisonDB 2.0 + BASTION v2</div>
+        <div class="rm-desc">Global mesh with DHT node discovery · Geo-redundant triple scatter · Emergency Profile Recovery · Aegis Collective global threat intelligence · AI-driven node health monitoring · Open hardware certification registry</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- FOUNDER -->
+<div class="section-sm">
+  <span class="label">A Personal Note</span>
+  <div class="founder">
+    <p class="founder-text">"I'm a Filipino OFW working in the Czech Republic, developing this project after my day job. I grew tired of how modern platforms manage our data — not as something we own, but as something they exploit. With the EU AI Act changing the legal landscape, I felt it was the right time to create a database that truly respects individuals. The code is still being worked on, but the philosophy is clear. I'm sharing this journey publicly because I have nothing to hide, and I genuinely want to create something valuable for everyone."</p>
+    <div class="founder-attr">— Edison, Founder, AIEONYX &nbsp;·&nbsp; Czech Republic, 2026</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CTA -->
+<div class="cta-section">
+  <span class="label">Join the Community</span>
+  <h2>A call to build.</h2>
+  <p class="cta-sub">EdisonDB is one person's vision seeking the hands of those who believe infrastructure should serve people, not corporations.</p>
+  <div class="cta-actions">
+    <a href="https://github.com/aieonyx/edisondb" class="btn-primary">★ &nbsp;Star on GitHub</a>
+    <a href="https://github.com/aieonyx/edisondb/blob/docs/PHILOSOPHY.md" class="btn-secondary">Read the Philosophy</a>
+  </div>
+</div>
+
+<hr class="divider">
+
+<footer class="footer">
+  <span class="footer-brand">EdisonDB</span>
+  <ul class="footer-links">
+    <li><a href="https://github.com/aieonyx/edisondb">GitHub</a></li>
+    <li><a href="https://github.com/aieonyx/edisondb/blob/main/COMMUNITY_PROMISE.md">Promise</a></li>
+    <li><a href="https://github.com/aieonyx/edisondb/blob/docs/TECHNICAL_SPEC.md">Spec</a></li>
+    <li><a href="https://github.com/aieonyx/edisondb/blob/docs/PHILOSOPHY.md">Philosophy</a></li>
+    <li><a href="https://aieonyx.com">AIEONYX</a></li>
+  </ul>
+  <span class="footer-copy">Apache 2.0 Core · BUSL Connector · © 2026 AIEONYX / EdisonDB</span>
+</footer>
+
+</body>
+</html>
