@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use aes_gcm::aead::{Aead, KeyInit};
 use rand::RngCore;
+use argon2::Argon2;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataTier {
@@ -196,11 +197,40 @@ pub fn decrypt_payload(
         .map_err(|_| EdisonError::LoadFailed)
 }
 
+pub fn derive_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
+    let mut key = [0u8; 32];
+    Argon2::default()
+        .hash_password_into(
+            password.as_bytes(),
+            salt,
+            &mut key,
+        )
+        .expect("key derivation failed");
+    key
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+   #[test]
+    fn same_password_same_key() {
+        let salt = [1u8; 32];
+        let key1 = derive_key("owner_password", &salt);
+        let key2 = derive_key("owner_password", &salt);
+        assert_eq!(key1, key2);
+    }
+
     #[test]
+    fn different_password_different_key() {
+        let salt = [1u8; 32];
+        let key1 = derive_key("owner_password", &salt);
+        let key2 = derive_key("wrong_password", &salt);
+        assert_ne!(key1, key2);
+    }
+   #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
             "owner_abc", vec![1,2,3]).unwrap();
