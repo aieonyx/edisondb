@@ -1,39 +1,85 @@
+use clap::{Parser, Subcommand};
 use edisondb::{Store, Record, DataTier};
 
+#[derive(Parser)]
+#[command(name = "edisondb")]
+#[command(about = "EdisonDB - Sovereign data storage")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Write {
+        #[arg(long)]
+        id: u64,
+        #[arg(long)]
+        owner: String,
+        #[arg(long)]
+        tier: String,
+        #[arg(long)]
+        data: String,
+    },
+    Read {
+        #[arg(long)]
+        id: u64,
+        #[arg(long)]
+        requester: String,
+    },
+    Audit,
+}
+
+const DB_PATH: &str = "edison.db.json";
+
 fn main() {
-    println!("EdisonDB v0.1.0");
-    println!("---------------");
+    let cli = Cli::parse();
 
-    let db_path = "edison.db.json";
-    let mut store = Store::new();
+    match cli.command {
+        Commands::Write { id, owner, tier, data } => {
+            let data_tier = match tier.as_str() {
+                "critical" => DataTier::Critical,
+                "personal" => DataTier::Personal,
+                "noise"    => DataTier::Noise,
+                _          => {
+                    println!("Unknown tier. Use: critical, personal, noise");
+                    return;
+                }
+            };
 
-    // Write a test record
-    let record = Record::new(
-        1,
-        DataTier::Personal,
-        "owner_ed",
-        b"sovereign data test".to_vec(),
-    ).unwrap();
+            let mut store = load_store();
+            match Record::new(id, data_tier, &owner, data.into_bytes()) {
+                Ok(record) => {
+                    store.write(record);
+                    store.save(DB_PATH).unwrap();
+                    println!("Record {} written.", id);
+                }
+                Err(e) => println!("Error: {:?}", e),
+            }
+        }
 
-    store.write(record);
-    println!("Record written.");
+        Commands::Read { id, requester } => {
+            let mut store = load_store();
+            match store.read(id, &requester) {
+                Ok(record) => {
+                    let data = String::from_utf8_lossy(&record.payload);
+                    println!("Record {}:", id);
+                    println!("  Owner:  {}", record.owner_id);
+                    println!("  Tier:   {:?}", record.tier);
+                    println!("  Data:   {}", data);
+                    store.save(DB_PATH).unwrap();
+                }
+                Err(e) => println!("Access denied: {:?}", e),
+            }
+        }
 
-    // Read it back
-    match store.read(1, "owner_ed") {
-        Ok(r) => println!("Read ok — owner: {}", r.owner_id),
-        Err(e) => println!("Read failed: {:?}", e),
+        Commands::Audit => {
+            let store = load_store();
+            println!("Audit log entries: {}", store.audit_count());
+        }
     }
+}
 
-    // Try unauthorized access
-    match store.read(1, "attacker") {
-        Ok(_) => println!("ERROR — attacker got access"),
-        Err(_) => println!("Access denied for attacker — correct."),
-    }
-
-    // Save to disk
-    store.save(db_path).unwrap();
-    println!("Saved to {}", db_path);
-
-    // Audit log count
-    println!("Audit entries: {}", store.audit_count());
+fn load_store() -> Store {
+    Store::load(DB_PATH).unwrap_or_else(|_| Store::new())
 }
