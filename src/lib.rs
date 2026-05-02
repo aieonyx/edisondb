@@ -5,7 +5,6 @@ use aes_gcm::{Aes256Gcm, Key, Nonce};
 use aes_gcm::aead::{Aead, KeyInit};
 use rand::RngCore;
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DataTier {
     Critical,
@@ -75,8 +74,8 @@ pub struct AuditEntry {
 }
 
 pub struct Store {
-    records: HashMap<u64, Record>,
-    audit_log: Vec<AuditEntry>,
+    pub records: HashMap<u64, Record>,
+    pub audit_log: Vec<AuditEntry>,
 }
 
 impl Store {
@@ -129,10 +128,16 @@ impl Store {
     pub fn audit_count(&self) -> usize {
         self.audit_log.len()
     }
-pub fn save(&self, path: &str) -> Result<(), EdisonError> {
-        let data = serde_json::to_string(&self.records)
+
+    pub fn save(&self, path: &str) -> Result<(), EdisonError> {
+        let records_data = serde_json::to_string(&self.records)
             .map_err(|_| EdisonError::SaveFailed)?;
-        std::fs::write(path, data)
+        std::fs::write(path, records_data)
+            .map_err(|_| EdisonError::SaveFailed)?;
+        let audit_path = format!("{}.audit", path);
+        let audit_data = serde_json::to_string(&self.audit_log)
+            .map_err(|_| EdisonError::SaveFailed)?;
+        std::fs::write(audit_path, audit_data)
             .map_err(|_| EdisonError::SaveFailed)?;
         Ok(())
     }
@@ -142,12 +147,13 @@ pub fn save(&self, path: &str) -> Result<(), EdisonError> {
             .map_err(|_| EdisonError::LoadFailed)?;
         let records = serde_json::from_str(&data)
             .map_err(|_| EdisonError::LoadFailed)?;
-        Ok(Store {
-            records,
-            audit_log: Vec::new(),
-        })
+        let audit_path = format!("{}.audit", path);
+        let audit_log = std::fs::read_to_string(audit_path)
+            .ok()
+            .and_then(|d| serde_json::from_str(&d).ok())
+            .unwrap_or_default();
+        Ok(Store { records, audit_log })
     }
-
 }
 
 fn now() -> u64 {
@@ -190,40 +196,10 @@ pub fn decrypt_payload(
         .map_err(|_| EdisonError::LoadFailed)
 }
 
-
-
-
-
-
-
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-#[test]
-    fn payload_encrypts_and_decrypts() {
-        let key = [0u8; 32];
-        let original = b"sovereign data";
-        let encrypted = encrypt_payload(original, &key).unwrap();
-        assert_ne!(encrypted, original.to_vec());
-        let decrypted = decrypt_payload(&encrypted, &key).unwrap();
-        assert_eq!(decrypted, original);
-    }
 
-
-    #[test]
-    fn store_saves_and_loads() {
-        let mut store = Store::new();
-        let r = Record::new(40, DataTier::Personal,
-            "owner_abc", vec![1,2,3]).unwrap();
-        store.write(r);
-        store.save("/tmp/test_edison.json").unwrap();
-        let loaded = Store::load("/tmp/test_edison.json").unwrap();
-        let record = loaded.records.get(&40).unwrap();
-        assert_eq!(record.owner_id, "owner_abc");
-    }
     #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
@@ -326,5 +302,39 @@ mod tests {
         store.write(r);
         let _ = store.read(31, "attacker");
         assert_eq!(store.audit_count(), 2);
+    }
+
+    #[test]
+    fn payload_encrypts_and_decrypts() {
+        let key = [0u8; 32];
+        let original = b"sovereign data";
+        let encrypted = encrypt_payload(original, &key).unwrap();
+        assert_ne!(encrypted, original.to_vec());
+        let decrypted = decrypt_payload(&encrypted, &key).unwrap();
+        assert_eq!(decrypted, original);
+    }
+
+    #[test]
+    fn store_saves_and_loads() {
+        let mut store = Store::new();
+        let r = Record::new(40, DataTier::Personal,
+            "owner_abc", vec![1,2,3]).unwrap();
+        store.write(r);
+        store.save("/tmp/test_edison.json").unwrap();
+        let loaded = Store::load("/tmp/test_edison.json").unwrap();
+        let record = loaded.records.get(&40).unwrap();
+        assert_eq!(record.owner_id, "owner_abc");
+    }
+
+    #[test]
+    fn audit_log_persists() {
+        let mut store = Store::new();
+        let r = Record::new(50, DataTier::Personal,
+            "owner_abc", vec![1]).unwrap();
+        store.write(r);
+        let _ = store.read(50, "owner_abc");
+        store.save("/tmp/test_audit.json").unwrap();
+        let loaded = Store::load("/tmp/test_audit.json").unwrap();
+        assert_eq!(loaded.audit_count(), 2);
     }
 }
