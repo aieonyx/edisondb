@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use edisondb::{Store, Record, DataTier, encrypt_payload, decrypt_payload, derive_key};
 use std::io::{self, Write};
+use rand::RngCore;
 
 #[derive(Parser)]
 #[command(name = "edisondb")]
@@ -32,7 +33,6 @@ enum Commands {
 }
 
 const DB_PATH: &str = "edison.db.json";
-const SALT: &[u8; 32] = b"aieonyx_sovereign_salt_v1_fixed!";
 
 fn prompt_password(prompt: &str) -> String {
     print!("{}", prompt);
@@ -58,11 +58,13 @@ fn main() {
             };
 
             let password = prompt_password("Enter owner password: ");
-            let key = derive_key(&password, SALT);
+            let mut salt = [0u8; 32];
+            rand::thread_rng().fill_bytes(&mut salt);
+            let key = derive_key(&password, &salt);
             let encrypted = encrypt_payload(data.as_bytes(), &key).unwrap();
 
             let mut store = load_store();
-            match Record::new(id, data_tier, &owner, encrypted) {
+            match Record::new(id, data_tier, &owner, encrypted, salt) {
                 Ok(record) => {
                     store.write(record);
                     store.save(DB_PATH).unwrap();
@@ -77,7 +79,7 @@ fn main() {
             match store.read(id, &requester) {
                 Ok(record) => {
                     let password = prompt_password("Enter owner password: ");
-                    let key = derive_key(&password, SALT);
+                    let key = derive_key(&password, &record.salt);
                     match decrypt_payload(&record.payload, &key) {
                         Ok(decrypted) => {
                             let data = String::from_utf8_lossy(&decrypted);

@@ -19,6 +19,7 @@ pub struct Record {
     pub tier: DataTier,
     pub owner_id: String,
     pub payload: Vec<u8>,
+    pub salt: [u8; 32],
     pub created_at: u64,
 }
 
@@ -28,6 +29,7 @@ impl Record {
         tier: DataTier,
         owner_id: &str,
         payload: Vec<u8>,
+        salt: [u8; 32],
     ) -> Result<Self, EdisonError> {
         if owner_id.is_empty() {
             return Err(EdisonError::NoOwner);
@@ -37,6 +39,7 @@ impl Record {
             tier,
             owner_id: owner_id.to_string(),
             payload,
+            salt,
             created_at: now(),
         })
     }
@@ -233,21 +236,21 @@ mod tests {
    #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         assert!(r.is_readable_by("owner_abc"));
     }
 
     #[test]
     fn non_owner_cannot_read_critical() {
         let r = Record::new(2, DataTier::Critical,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         assert!(!r.is_readable_by("attacker"));
     }
 
     #[test]
     fn admin_cannot_read_critical() {
         let r = Record::new(3, DataTier::Critical,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();		
         assert!(!r.is_readable_by("admin"));
         assert!(!r.is_readable_by("root"));
     }
@@ -255,21 +258,21 @@ mod tests {
     #[test]
     fn noise_readable_by_anyone() {
         let r = Record::new(4, DataTier::Noise,
-            "owner_abc", vec![9,8,7]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         assert!(r.is_readable_by("anyone"));
     }
 
     #[test]
     fn record_without_owner_rejected() {
         let result = Record::new(5, DataTier::Personal,
-            "", vec![1]);
+            "", vec![1] , [0u8; 32]  );
         assert_eq!(result, Err(EdisonError::NoOwner));
     }
 
     #[test]
     fn record_has_timestamp() {
         let r = Record::new(6, DataTier::Personal,
-            "owner_abc", vec![]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         assert!(r.created_at > 0);
     }
 
@@ -277,7 +280,7 @@ mod tests {
     fn owner_can_read_stored_record() {
         let mut store = Store::new();
         let r = Record::new(10, DataTier::Personal,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         assert!(store.read(10, "owner_abc").is_ok());
     }
@@ -286,7 +289,7 @@ mod tests {
     fn attacker_cannot_read_stored_record() {
         let mut store = Store::new();
         let r = Record::new(11, DataTier::Critical,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         assert_eq!(
             store.read(11, "attacker"),
@@ -298,7 +301,7 @@ mod tests {
     fn write_creates_audit_entry() {
         let mut store = Store::new();
         let r = Record::new(20, DataTier::Personal,
-            "owner_abc", vec![1]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         assert_eq!(store.audit_count(), 1);
     }
@@ -308,7 +311,7 @@ mod tests {
         let mut store = Store::new();
         for i in 0..5 {
             let r = Record::new(i, DataTier::Noise,
-                "owner_abc", vec![]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
             store.write(r);
         }
         assert_eq!(store.audit_count(), 5);
@@ -318,7 +321,7 @@ mod tests {
     fn granted_read_is_audited() {
         let mut store = Store::new();
         let r = Record::new(30, DataTier::Personal,
-            "owner_abc", vec![1]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         let _ = store.read(30, "owner_abc");
         assert_eq!(store.audit_count(), 2);
@@ -328,7 +331,7 @@ mod tests {
     fn denied_read_is_audited() {
         let mut store = Store::new();
         let r = Record::new(31, DataTier::Critical,
-            "owner_abc", vec![1]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         let _ = store.read(31, "attacker");
         assert_eq!(store.audit_count(), 2);
@@ -348,7 +351,7 @@ mod tests {
     fn store_saves_and_loads() {
         let mut store = Store::new();
         let r = Record::new(40, DataTier::Personal,
-            "owner_abc", vec![1,2,3]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         store.save("/tmp/test_edison.json").unwrap();
         let loaded = Store::load("/tmp/test_edison.json").unwrap();
@@ -360,7 +363,7 @@ mod tests {
     fn audit_log_persists() {
         let mut store = Store::new();
         let r = Record::new(50, DataTier::Personal,
-            "owner_abc", vec![1]).unwrap();
+		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
         store.write(r);
         let _ = store.read(50, "owner_abc");
         store.save("/tmp/test_audit.json").unwrap();
