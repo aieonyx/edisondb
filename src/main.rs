@@ -134,16 +134,24 @@ fn main() {
             }
         }
 
-        Commands::Audit => {
+Commands::Audit => {
             let store = load_store();
             let entries = store.audit_entries();
             if entries.is_empty() {
                 println!("No audit entries.");
             } else {
                 println!("Audit log ({} entries):", entries.len());
+                println!("  {:<8} {:<12} {:<15} {}",
+                    "Record", "By", "Action", "Time");
+                println!("  {}", "-".repeat(50));
                 for e in entries {
-                    println!("  Record: {}  By: {}  Action: {:?}  Time: {}",
-                        e.record_id, e.requester_id, e.action, e.timestamp);
+                    let action = match e.action {
+                        edisondb::AuditAction::Write => "WRITE",
+                        edisondb::AuditAction::ReadGranted => "READ_OK",
+                        edisondb::AuditAction::ReadDenied => "READ_DENIED",
+                    };
+                    println!("  {:<8} {:<12} {:<15} {}",
+                        e.record_id, e.requester_id, action, e.timestamp);
                 }
             }
         }

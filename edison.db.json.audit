@@ -1,1 +1,1 @@
-[{"record_id":1,"requester_id":"ed","action":"Write","timestamp":1777774573},{"record_id":2,"requester_id":"ed","action":"Write","timestamp":1777774588},{"record_id":1,"requester_id":"ed","action":"Write","timestamp":1777774661}]
+[{"record_id":1,"requester_id":"ed","action":"Write","timestamp":1777781890},{"record_id":1,"requester_id":"ed","action":"ReadGranted","timestamp":1777781890}]
