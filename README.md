@@ -36,6 +36,36 @@ Built in Rust. Encrypted by default. Yours forever.
 </div>
 
 ---
+## Current Status — What Works Today
+
+EdisonDB is in early prototype stage. The following features are **implemented and tested**:
+
+- **Data Tier Model** — Critical, Personal, and Noise tiers with different access rules
+- **Owner-Only Access Control** — only the record owner can read or delete their data
+- **AES-256-GCM Encryption** — all payloads encrypted before writing to disk
+- **Argon2 Key Derivation** — owner password converted to encryption key
+- **Per-Record Random Salt** — each record has its own unique salt
+- **Persistent Audit Log** — every write, read, and denied access recorded to disk
+- **CLI** — write, read, list, delete, and audit commands working
+- **20 Passing Tests** — covering access control, encryption, persistence, and audit
+
+### What Is Not Built Yet
+
+The sections below describe the full vision and roadmap. The following features are **planned but not yet implemented**:
+
+- EQL query language
+- Vector search and auto-embedding
+- Graph traversal
+- Multiple deployment modes
+- Network layer and API server
+- Distributed cluster
+- AI intelligence layer
+- Real identity management
+
+The code is approximately 350 lines of Rust. It is a working foundation — not a production database.
+
+---
+
 
 ## What is EdisonDB?
 
