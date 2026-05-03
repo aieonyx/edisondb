@@ -13,6 +13,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Write an encrypted record to the store
     Write {
         #[arg(long)]
         id: u64,
@@ -23,25 +24,28 @@ enum Commands {
         #[arg(long)]
         data: String,
     },
+    /// Read and decrypt a record (owner only)
     Read {
         #[arg(long)]
         id: u64,
         #[arg(long)]
         requester: String,
     },
+    /// List all records belonging to an owner
     List {
         #[arg(long)]
         owner: String,
     },
+    /// Delete a record (owner only)
     Delete {
         #[arg(long)]
         id: u64,
         #[arg(long)]
         owner: String,
     },
+    /// Show the full audit log
     Audit,
 }
-
 const DB_PATH: &str = "edison.db.json";
 
 fn prompt_password(prompt: &str) -> String {
