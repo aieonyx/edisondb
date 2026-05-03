@@ -132,6 +132,43 @@ impl Store {
     pub fn audit_count(&self) -> usize {
         self.audit_log.len()
     }
+pub fn list_by_owner(&self, owner_id: &str) -> Vec<&Record> {
+        self.records
+            .values()
+            .filter(|r| r.owner_id == owner_id)
+            .collect()
+    }
+
+    pub fn audit_entries(&self) -> &Vec<AuditEntry> {
+        &self.audit_log
+    }
+
+    pub fn delete(
+        &mut self,
+        id: u64,
+        requester_id: &str,
+    ) -> Result<(), EdisonError> {
+        match self.records.get(&id) {
+            None => Err(EdisonError::NotFound),
+            Some(record) => {
+                if record.owner_id != requester_id {
+                    return Err(EdisonError::AccessDenied);
+                }
+                self.audit_log.push(AuditEntry {
+                    record_id: id,
+                    requester_id: requester_id.to_string(),
+                    action: AuditAction::Write,
+                    timestamp: now(),
+                });
+                self.records.remove(&id);
+                Ok(())
+            }
+        }
+    }
+
+
+
+
 
     pub fn save(&self, path: &str) -> Result<(), EdisonError> {
         let records_data = serde_json::to_string(&self.records)
@@ -217,6 +254,44 @@ pub fn derive_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn list_returns_owner_records_only() {
+        let mut store = Store::new();
+        let r1 = Record::new(60, DataTier::Personal,
+            "alice", vec![1], [0u8; 32]).unwrap();
+        let r2 = Record::new(61, DataTier::Noise,
+            "bob", vec![2], [0u8; 32]).unwrap();
+        store.write(r1);
+        store.write(r2);
+        let alice_records = store.list_by_owner("alice");
+        assert_eq!(alice_records.len(), 1);
+        assert_eq!(alice_records[0].id, 60);
+    }
+
+    #[test]
+    fn owner_can_delete_own_record() {
+        let mut store = Store::new();
+        let r = Record::new(70, DataTier::Personal,
+            "alice", vec![1], [0u8; 32]).unwrap();
+        store.write(r);
+        assert!(store.delete(70, "alice").is_ok());
+        assert_eq!(store.list_by_owner("alice").len(), 0);
+    }
+
+    #[test]
+    fn non_owner_cannot_delete_record() {
+        let mut store = Store::new();
+        let r = Record::new(71, DataTier::Critical,
+            "alice", vec![1], [0u8; 32]).unwrap();
+        store.write(r);
+        assert_eq!(
+            store.delete(71, "attacker"),
+            Err(EdisonError::AccessDenied)
+        );
+    }
+
+
 
    #[test]
     fn same_password_same_key() {

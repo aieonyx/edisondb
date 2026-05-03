@@ -29,6 +29,16 @@ enum Commands {
         #[arg(long)]
         requester: String,
     },
+    List {
+        #[arg(long)]
+        owner: String,
+    },
+    Delete {
+        #[arg(long)]
+        id: u64,
+        #[arg(long)]
+        owner: String,
+    },
     Audit,
 }
 
@@ -96,9 +106,42 @@ fn main() {
             }
         }
 
+        Commands::List { owner } => {
+            let store = load_store();
+            let records = store.list_by_owner(&owner);
+            if records.is_empty() {
+                println!("No records found for owner: {}", owner);
+            } else {
+                println!("Records for {}:", owner);
+                for r in records {
+                    println!("  ID: {}  Tier: {:?}", r.id, r.tier);
+                }
+            }
+        }
+
+        Commands::Delete { id, owner } => {
+            let mut store = load_store();
+            match store.delete(id, &owner) {
+                Ok(()) => {
+                    store.save(DB_PATH).unwrap();
+                    println!("Record {} deleted.", id);
+                }
+                Err(e) => println!("Delete failed: {:?}", e),
+            }
+        }
+
         Commands::Audit => {
             let store = load_store();
-            println!("Audit log entries: {}", store.audit_count());
+            let entries = store.audit_entries();
+            if entries.is_empty() {
+                println!("No audit entries.");
+            } else {
+                println!("Audit log ({} entries):", entries.len());
+                for e in entries {
+                    println!("  Record: {}  By: {}  Action: {:?}  Time: {}",
+                        e.record_id, e.requester_id, e.action, e.timestamp);
+                }
+            }
         }
     }
 }
