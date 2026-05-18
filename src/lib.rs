@@ -44,7 +44,7 @@ impl Record {
         })
     }
 
-    pub fn is_readable_by(&self, requester_id: &str) -> bool {
+   fn is_readable_by(&self, requester_id: &str) -> bool {
         match self.tier {
             DataTier::Critical => requester_id == self.owner_id,
             DataTier::Personal => requester_id == self.owner_id,
@@ -67,6 +67,7 @@ pub enum AuditAction {
     Write,
     ReadGranted,
     ReadDenied,
+    Delete,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,7 +95,7 @@ impl Store {
         self.audit_log.push(AuditEntry {
             record_id: record.id,
             requester_id: record.owner_id.clone(),
-            action: AuditAction::Write,
+            action: AuditAction::Delete,
             timestamp: now(),
         });
         self.records.insert(record.id, record);
@@ -157,7 +158,7 @@ pub fn list_by_owner(&self, owner_id: &str) -> Vec<&Record> {
                 self.audit_log.push(AuditEntry {
                     record_id: id,
                     requester_id: requester_id.to_string(),
-                    action: AuditAction::Write,
+                    action: AuditAction::Delete,
                     timestamp: now(),
                 });
                 self.records.remove(&id);

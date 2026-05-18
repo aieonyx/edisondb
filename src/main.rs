@@ -180,6 +180,7 @@ fn main() {
                         edisondb::AuditAction::Write => "WRITE",
                         edisondb::AuditAction::ReadGranted => "READ_OK",
                         edisondb::AuditAction::ReadDenied => "READ_DENIED",
+                        edisondb::AuditAction::Delete => "DELETE",
                     };
                     println!("  {:<8} {:<12} {:<15} {}",
                         e.record_id, e.requester_id, action, e.timestamp);
