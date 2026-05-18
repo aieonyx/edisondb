@@ -46,13 +46,18 @@ enum Commands {
     /// Show the full audit log
     Audit,
 }
+
 const DB_PATH: &str = "edison.db.json";
 
 fn prompt_password(prompt: &str) -> String {
     print!("{}", prompt);
-    io::stdout().flush().unwrap();
+    if io::stdout().flush().is_err() {
+        return String::new();
+    }
     let mut password = String::new();
-    io::stdin().read_line(&mut password).unwrap();
+    if io::stdin().read_line(&mut password).is_err() {
+        return String::new();
+    }
     password.trim().to_string()
 }
 
@@ -74,14 +79,29 @@ fn main() {
             let password = prompt_password("Enter owner password: ");
             let mut salt = [0u8; 32];
             rand::thread_rng().fill_bytes(&mut salt);
-            let key = derive_key(&password, &salt);
-            let encrypted = encrypt_payload(data.as_bytes(), &key).unwrap();
+            let key = match derive_key(&password, &salt) {
+                Ok(k) => k,
+                Err(_) => {
+                    println!("Error: key derivation failed.");
+                    return;
+                }
+            };
+            let encrypted = match encrypt_payload(data.as_bytes(), &key) {
+                Ok(e) => e,
+                Err(_) => {
+                    println!("Error: encryption failed.");
+                    return;
+                }
+            };
 
             let mut store = load_store();
             match Record::new(id, data_tier, &owner, encrypted, salt) {
                 Ok(record) => {
                     store.write(record);
-                    store.save(DB_PATH).unwrap();
+                    if let Err(_) = store.save(DB_PATH) {
+                        println!("Error: failed to save database.");
+                        return;
+                    }
                     println!("Record {} written and encrypted.", id);
                 }
                 Err(e) => println!("Error: {:?}", e),
@@ -93,7 +113,13 @@ fn main() {
             match store.read(id, &requester) {
                 Ok(record) => {
                     let password = prompt_password("Enter owner password: ");
-                    let key = derive_key(&password, &record.salt);
+                    let key = match derive_key(&password, &record.salt) {
+                        Ok(k) => k,
+                        Err(_) => {
+                            println!("Error: key derivation failed.");
+                            return;
+                        }
+                    };
                     match decrypt_payload(&record.payload, &key) {
                         Ok(decrypted) => {
                             let data = String::from_utf8_lossy(&decrypted);
@@ -104,7 +130,9 @@ fn main() {
                         }
                         Err(_) => println!("Wrong password — cannot decrypt."),
                     }
-                    store.save(DB_PATH).unwrap();
+                    if let Err(_) = store.save(DB_PATH) {
+                        println!("Error: failed to save database.");
+                    }
                 }
                 Err(e) => println!("Access denied: {:?}", e),
             }
@@ -127,14 +155,17 @@ fn main() {
             let mut store = load_store();
             match store.delete(id, &owner) {
                 Ok(()) => {
-                    store.save(DB_PATH).unwrap();
+                    if let Err(_) = store.save(DB_PATH) {
+                        println!("Error: failed to save database.");
+                        return;
+                    }
                     println!("Record {} deleted.", id);
                 }
                 Err(e) => println!("Delete failed: {:?}", e),
             }
         }
 
-Commands::Audit => {
+        Commands::Audit => {
             let store = load_store();
             let entries = store.audit_entries();
             if entries.is_empty() {

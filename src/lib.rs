@@ -237,7 +237,7 @@ pub fn decrypt_payload(
         .map_err(|_| EdisonError::LoadFailed)
 }
 
-pub fn derive_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
+pub fn derive_key(password: &str, salt: &[u8; 32]) -> Result<[u8; 32], EdisonError> {
     let mut key = [0u8; 32];
     Argon2::default()
         .hash_password_into(
@@ -245,8 +245,8 @@ pub fn derive_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
             salt,
             &mut key,
         )
-        .expect("key derivation failed");
-    key
+        .map_err(|_| EdisonError::SaveFailed)?;
+    Ok(key)
 }
 
 
@@ -291,24 +291,7 @@ mod tests {
         );
     }
 
-
-
-   #[test]
-    fn same_password_same_key() {
-        let salt = [1u8; 32];
-        let key1 = derive_key("owner_password", &salt);
-        let key2 = derive_key("owner_password", &salt);
-        assert_eq!(key1, key2);
-    }
-
     #[test]
-    fn different_password_different_key() {
-        let salt = [1u8; 32];
-        let key1 = derive_key("owner_password", &salt);
-        let key2 = derive_key("wrong_password", &salt);
-        assert_ne!(key1, key2);
-    }
-   #[test]
     fn owner_can_read_critical() {
         let r = Record::new(1, DataTier::Critical,
 		"owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
@@ -445,4 +428,22 @@ mod tests {
         let loaded = Store::load("/tmp/test_audit.json").unwrap();
         assert_eq!(loaded.audit_count(), 2);
     }
+    #[test]
+    fn same_password_same_key() {
+        let salt = [1u8; 32];
+        let key1 = derive_key("owner_password", &salt).unwrap();
+        let key2 = derive_key("owner_password", &salt).unwrap();
+        assert_eq!(key1, key2);
+    }
+
+    #[test]
+    fn different_password_different_key() {
+        let salt = [1u8; 32];
+        let key1 = derive_key("owner_password", &salt).unwrap();
+        let key2 = derive_key("wrong_password", &salt).unwrap();
+        assert_ne!(key1, key2);
+    }
+
+
+
 }
