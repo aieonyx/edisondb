@@ -10,3 +10,4 @@ clap = { version = "4", features = ["derive"] }
 aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
+redb = "2"

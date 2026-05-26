@@ -47,7 +47,7 @@ enum Commands {
     Audit,
 }
 
-const DB_PATH: &str = "edison.db.json";
+const DB_PATH: &str = "edison.redb";
 
 fn prompt_password(prompt: &str) -> String {
     print!("{}", prompt);
