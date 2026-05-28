@@ -1,3 +1,4 @@
 /target
 edison.db.json
 edison.db.json.audit
+*.backup
