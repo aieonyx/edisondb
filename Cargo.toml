@@ -11,3 +11,10 @@ aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
 redb = "2"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "edisondb_bench"
+harness = false
