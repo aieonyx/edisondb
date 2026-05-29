@@ -86,7 +86,11 @@ pub struct Store {
     pub records: HashMap<u64, Record>,
     pub audit_log: Vec<AuditEntry>,
 }
-
+impl Default for Store {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Store {
     pub fn new() -> Self {
         Store {
@@ -219,17 +223,14 @@ impl Store {
             records.insert(key.value(), record);
         }
         let mut audit_log = Vec::new();
-        if let Ok(table) = read_txn.open_table(AUDIT_TABLE) {
-            if let Ok(iter) = table.iter() {
-                for entry in iter {
-                    if let Ok((_, value)) = entry {
-                        if let Ok(a) = serde_json::from_str(value.value()) {
-                            audit_log.push(a);
-                        }
+        if let Ok(table) = read_txn.open_table(AUDIT_TABLE)
+            && let Ok(iter) = table.iter() {
+                for (_, value) in iter.flatten() {
+                    if let Ok(a) = serde_json::from_str(value.value()) {
+                        audit_log.push(a);
                     }
                 }
             }
-        }
         Ok(Store { records, audit_log })
     }
 }

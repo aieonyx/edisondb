@@ -98,7 +98,7 @@ fn main() {
             match Record::new(id, data_tier, &owner, encrypted, salt) {
                 Ok(record) => {
                     store.write(record);
-                    if let Err(_) = store.save(DB_PATH) {
+                    if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
                         return;
                     }
@@ -130,7 +130,7 @@ fn main() {
                         }
                         Err(_) => println!("Wrong password — cannot decrypt."),
                     }
-                    if let Err(_) = store.save(DB_PATH) {
+                    if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
                     }
                 }
@@ -155,7 +155,7 @@ fn main() {
             let mut store = load_store();
             match store.delete(id, &owner) {
                 Ok(()) => {
-                    if let Err(_) = store.save(DB_PATH) {
+                    if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
                         return;
                     }
@@ -172,8 +172,8 @@ fn main() {
                 println!("No audit entries.");
             } else {
                 println!("Audit log ({} entries):", entries.len());
-                println!("  {:<8} {:<12} {:<15} {}",
-                    "Record", "By", "Action", "Time");
+                println!("  {:<8} {:<12} {:<15} Time",
+                    "Record", "By", "Action");
                 println!("  {}", "-".repeat(50));
                 for e in entries {
                     let action = match e.action {
