@@ -114,7 +114,10 @@ impl Store {
         }
     }
 
-    pub fn write(&mut self, record: Record) {
+    pub fn write(&mut self, record: Record) -> Result<(), EdisonError> {
+        if self.records.contains_key(&record.id) {
+            return Err(EdisonError::AlreadyExists);
+        }
         self.audit_log.push(AuditEntry {
             record_id: record.id,
             requester_id: record.owner_id.clone(),
@@ -122,7 +125,9 @@ impl Store {
             timestamp: now(),
         });
         self.records.insert(record.id, record);
+        Ok(())
     }
+  
 
     pub fn read(
         &mut self,
@@ -354,7 +359,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(10, DataTier::Personal,
             "owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         assert!(store.read(10, "owner_abc").is_ok());
     }
 
@@ -363,7 +368,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(11, DataTier::Critical,
             "owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         assert_eq!(
             store.read(11, "attacker"),
             Err(EdisonError::AccessDenied)
@@ -375,7 +380,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(20, DataTier::Personal,
             "owner_abc", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         assert_eq!(store.audit_count(), 1);
     }
 
@@ -385,7 +390,7 @@ mod tests {
         for i in 0..5 {
             let r = Record::new(i, DataTier::Noise,
                 "owner_abc", vec![], [0u8; 32]).unwrap();
-            store.write(r);
+            store.write(r).unwrap();
         }
         assert_eq!(store.audit_count(), 5);
     }
@@ -395,7 +400,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(30, DataTier::Personal,
             "owner_abc", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         let _ = store.read(30, "owner_abc");
         assert_eq!(store.audit_count(), 2);
     }
@@ -405,7 +410,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(31, DataTier::Critical,
             "owner_abc", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         let _ = store.read(31, "attacker");
         assert_eq!(store.audit_count(), 2);
     }
@@ -417,8 +422,8 @@ mod tests {
             "alice", vec![1], [0u8; 32]).unwrap();
         let r2 = Record::new(61, DataTier::Noise,
             "bob", vec![2], [0u8; 32]).unwrap();
-        store.write(r1);
-        store.write(r2);
+        store.write(r1).unwrap();
+        store.write(r2).unwrap();
         let alice_records = store.list_by_owner("alice");
         assert_eq!(alice_records.len(), 1);
         assert_eq!(alice_records[0].id, 60);
@@ -429,7 +434,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(70, DataTier::Personal,
             "alice", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         assert!(store.delete(70, "alice").is_ok());
         assert_eq!(store.list_by_owner("alice").len(), 0);
     }
@@ -439,7 +444,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(71, DataTier::Critical,
             "alice", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         assert_eq!(
             store.delete(71, "attacker"),
             Err(EdisonError::AccessDenied)
@@ -463,7 +468,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(40, DataTier::Personal,
             "owner_abc", vec![1,2,3], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         store.save(path).unwrap();
         let loaded = Store::load(path).unwrap();
         let record = loaded.records.get(&40).unwrap();
@@ -477,7 +482,7 @@ mod tests {
         let mut store = Store::new();
         let r = Record::new(50, DataTier::Personal,
             "owner_abc", vec![1], [0u8; 32]).unwrap();
-        store.write(r);
+        store.write(r).unwrap();
         let _ = store.read(50, "owner_abc");
         store.save(path).unwrap();
         let loaded = Store::load(path).unwrap();
@@ -498,5 +503,16 @@ mod tests {
         let key1 = derive_key("owner_password", &salt).unwrap();
         let key2 = derive_key("wrong_password", &salt).unwrap();
         assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn duplicate_id_rejected() {
+        let mut store = Store::new();
+        let r1 = Record::new(100, DataTier::Personal,
+            "alice", vec![1], [0u8; 32]).unwrap();
+        let r2 = Record::new(100, DataTier::Personal,
+            "alice", vec![2], [0u8; 32]).unwrap();
+        store.write(r1).unwrap();
+        assert_eq!(store.write(r2), Err(EdisonError::AlreadyExists));
     }
 }

@@ -98,7 +98,10 @@ fn main() {
             let mut store = load_store();
             match Record::new(id, data_tier, &owner, encrypted, salt) {
                 Ok(record) => {
-                    store.write(record);
+                    if let Err(e) = store.write(record) {
+                        println!("Error: {}", e);
+                        return;
+                    }
                     if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
                     } else {
