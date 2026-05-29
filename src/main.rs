@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
 use edisondb::{Store, Record, DataTier, encrypt_payload, decrypt_payload, derive_key};
+use rpassword::read_password;
 use std::io::{self, Write};
 use rand::RngCore;
+use zeroize::Zeroize;
 
 #[derive(Parser)]
 #[command(name = "edisondb")]
@@ -54,11 +56,7 @@ fn prompt_password(prompt: &str) -> String {
     if io::stdout().flush().is_err() {
         return String::new();
     }
-    let mut password = String::new();
-    if io::stdin().read_line(&mut password).is_err() {
-        return String::new();
-    }
-    password.trim().to_string()
+    read_password().unwrap_or_default()
 }
 
 fn main() {
@@ -76,12 +74,13 @@ fn main() {
                 }
             };
 
-            let password = prompt_password("Enter owner password: ");
+            let mut password = prompt_password("Enter owner password: ");
             let mut salt = [0u8; 32];
             rand::thread_rng().fill_bytes(&mut salt);
-            let key = match derive_key(&password, &salt) {
+            let mut key = match derive_key(&password, &salt) {
                 Ok(k) => k,
                 Err(_) => {
+                    password.zeroize();
                     println!("Error: key derivation failed.");
                     return;
                 }
@@ -89,6 +88,8 @@ fn main() {
             let encrypted = match encrypt_payload(data.as_bytes(), &key) {
                 Ok(e) => e,
                 Err(_) => {
+                    password.zeroize();
+                    key.zeroize();
                     println!("Error: encryption failed.");
                     return;
                 }
@@ -100,22 +101,25 @@ fn main() {
                     store.write(record);
                     if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
-                        return;
+                    } else {
+                        println!("Record {} written and encrypted.", id);
                     }
-                    println!("Record {} written and encrypted.", id);
                 }
                 Err(e) => println!("Error: {:?}", e),
             }
+            password.zeroize();
+            key.zeroize();
         }
 
         Commands::Read { id, requester } => {
             let mut store = load_store();
             match store.read(id, &requester) {
                 Ok(record) => {
-                    let password = prompt_password("Enter owner password: ");
-                    let key = match derive_key(&password, &record.salt) {
+                    let mut password = prompt_password("Enter owner password: ");
+                    let mut key = match derive_key(&password, &record.salt) {
                         Ok(k) => k,
                         Err(_) => {
+                            password.zeroize();
                             println!("Error: key derivation failed.");
                             return;
                         }
@@ -130,6 +134,8 @@ fn main() {
                         }
                         Err(_) => println!("Wrong password — cannot decrypt."),
                     }
+                    password.zeroize();
+                    key.zeroize();
                     if store.save(DB_PATH).is_err() {
                         println!("Error: failed to save database.");
                     }

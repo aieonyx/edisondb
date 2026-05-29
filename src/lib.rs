@@ -57,13 +57,26 @@ impl Record {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum EdisonError {
+    #[error("Record must have an owner")]
     NoOwner,
+    #[error("Access denied — owner only")]
     AccessDenied,
+    #[error("Record not found")]
     NotFound,
+    #[error("Failed to save database")]
     SaveFailed,
+    #[error("Failed to load database")]
     LoadFailed,
+    #[error("Encryption failed")]
+    EncryptionFailed,
+    #[error("Decryption failed — wrong key or corrupted data")]
+    DecryptionFailed,
+    #[error("Key derivation failed")]
+    KeyDerivationFailed,
+    #[error("Record already exists")]
+    AlreadyExists,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,11 +99,13 @@ pub struct Store {
     pub records: HashMap<u64, Record>,
     pub audit_log: Vec<AuditEntry>,
 }
+
 impl Default for Store {
     fn default() -> Self {
         Self::new()
     }
 }
+
 impl Store {
     pub fn new() -> Self {
         Store {
@@ -253,7 +268,7 @@ pub fn encrypt_payload(
     let nonce = Nonce::from_slice(&nonce_bytes);
     let mut encrypted = cipher
         .encrypt(nonce, data)
-        .map_err(|_| EdisonError::SaveFailed)?;
+        .map_err(|_| EdisonError::EncryptionFailed)?;
     let mut result = nonce_bytes.to_vec();
     result.append(&mut encrypted);
     Ok(result)
@@ -264,7 +279,7 @@ pub fn decrypt_payload(
     key: &[u8; 32],
 ) -> Result<Vec<u8>, EdisonError> {
     if data.len() < 12 {
-        return Err(EdisonError::LoadFailed);
+        return Err(EdisonError::DecryptionFailed);
     }
     let (nonce_bytes, encrypted) = data.split_at(12);
     let key = Key::<Aes256Gcm>::from_slice(key);
@@ -272,7 +287,7 @@ pub fn decrypt_payload(
     let nonce = Nonce::from_slice(nonce_bytes);
     cipher
         .decrypt(nonce, encrypted)
-        .map_err(|_| EdisonError::LoadFailed)
+        .map_err(|_| EdisonError::DecryptionFailed)
 }
 
 pub fn derive_key(password: &str, salt: &[u8; 32]) -> Result<[u8; 32], EdisonError> {
@@ -283,7 +298,7 @@ pub fn derive_key(password: &str, salt: &[u8; 32]) -> Result<[u8; 32], EdisonErr
             salt,
             &mut key,
         )
-        .map_err(|_| EdisonError::SaveFailed)?;
+        .map_err(|_| EdisonError::KeyDerivationFailed)?;
     Ok(key)
 }
 

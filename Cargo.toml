@@ -11,6 +11,9 @@ aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
 redb = "2"
+rpassword = "7"
+zeroize = "1"
+thiserror = "1"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
