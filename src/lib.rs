@@ -6,6 +6,7 @@ use aes_gcm::aead::{Aead, KeyInit, Payload};
 use rand::RngCore;
 use argon2::Argon2;
 use redb::{Database, TableDefinition, ReadableTable};
+use sha2::{Sha256, Digest};
 pub mod eql;
 pub mod executor;
 
@@ -89,6 +90,8 @@ pub enum EdisonError {
     KeyDerivationFailed,
     #[error("Record already exists")]
     AlreadyExists,
+    #[error("Audit chain integrity violation")]
+    AuditChainBroken,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,6 +108,7 @@ pub struct AuditEntry {
     pub requester_id: String,
     pub action: AuditAction,
     pub timestamp: u64,
+    pub prev_hash: [u8; 32],
 }
 
 pub struct Store {
@@ -126,16 +130,57 @@ impl Store {
         }
     }
 
+    fn last_chain_hash(&self) -> [u8; 32] {
+        match self.audit_log.last() {
+            None => [0u8; 32],
+            Some(entry) => {
+                let json = serde_json::to_string(entry).unwrap_or_default();
+                let mut hasher = Sha256::new();
+                hasher.update(json.as_bytes());
+                hasher.finalize().into()
+            }
+        }
+    }
+
+    fn append_audit(
+        &mut self,
+        record_id: String,
+        requester_id: String,
+        action: AuditAction,
+    ) {
+        let prev_hash = self.last_chain_hash();
+        self.audit_log.push(AuditEntry {
+            record_id,
+            requester_id,
+            action,
+            timestamp: now(),
+            prev_hash,
+        });
+    }
+
+    pub fn verify_audit_chain(&self) -> Result<(), EdisonError> {
+        let mut expected_prev = [0u8; 32];
+        for entry in &self.audit_log {
+            if entry.prev_hash != expected_prev {
+                return Err(EdisonError::AuditChainBroken);
+            }
+            let json = serde_json::to_string(entry).unwrap_or_default();
+            let mut hasher = Sha256::new();
+            hasher.update(json.as_bytes());
+            expected_prev = hasher.finalize().into();
+        }
+        Ok(())
+    }
+
     pub fn write(&mut self, record: Record) -> Result<(), EdisonError> {
         if self.records.contains_key(&record.id) {
             return Err(EdisonError::AlreadyExists);
         }
-        self.audit_log.push(AuditEntry {
-            record_id: record.id.clone(),
-            requester_id: record.owner_id.clone(),
-            action: AuditAction::Write,
-            timestamp: now(),
-        });
+        self.append_audit(
+            record.id.clone(),
+            record.owner_id.clone(),
+            AuditAction::Write,
+        );
         self.records.insert(record.id.clone(), record);
         Ok(())
     }
@@ -145,27 +190,25 @@ impl Store {
         id: &str,
         requester_id: &str,
     ) -> Result<&Record, EdisonError> {
-        match self.records.get(id) {
-            None => Err(EdisonError::NotFound),
-            Some(record) => {
-                if record.is_readable_by(requester_id) {
-                    self.audit_log.push(AuditEntry {
-                        record_id: id.to_string(),
-                        requester_id: requester_id.to_string(),
-                        action: AuditAction::ReadGranted,
-                        timestamp: now(),
-                    });
-                    Ok(record)
-                } else {
-                    self.audit_log.push(AuditEntry {
-                        record_id: id.to_string(),
-                        requester_id: requester_id.to_string(),
-                        action: AuditAction::ReadDenied,
-                        timestamp: now(),
-                    });
-                    Err(EdisonError::AccessDenied)
-                }
-            }
+        let (found, readable) = match self.records.get(id) {
+            None => return Err(EdisonError::NotFound),
+            Some(record) => (true, record.is_readable_by(requester_id)),
+        };
+        let _ = found;
+        if readable {
+            self.append_audit(
+                id.to_string(),
+                requester_id.to_string(),
+                AuditAction::ReadGranted,
+            );
+            Ok(self.records.get(id).unwrap())
+        } else {
+            self.append_audit(
+                id.to_string(),
+                requester_id.to_string(),
+                AuditAction::ReadDenied,
+            );
+            Err(EdisonError::AccessDenied)
         }
     }
 
@@ -195,12 +238,11 @@ impl Store {
                 if record.owner_id != requester_id {
                     return Err(EdisonError::AccessDenied);
                 }
-                self.audit_log.push(AuditEntry {
-                    record_id: id.to_string(),
-                    requester_id: requester_id.to_string(),
-                    action: AuditAction::Delete,
-                    timestamp: now(),
-                });
+                self.append_audit(
+                    id.to_string(),
+                    requester_id.to_string(),
+                    AuditAction::Delete,
+                );
                 self.records.remove(id);
                 Ok(())
             }
@@ -564,5 +606,30 @@ mod tests {
             "alice", vec![2], [0u8; 32]).unwrap();
         store.write(r1).unwrap();
         assert_eq!(store.write(r2), Err(EdisonError::AlreadyExists));
+    }
+
+    #[test]
+    fn audit_chain_is_valid() {
+        let mut store = Store::new();
+        for i in 0..5 {
+            let id = format!("rec:{}", i);
+            let r = Record::new(&id, DataTier::Personal,
+                "alice", vec![1], [0u8; 32]).unwrap();
+            store.write(r).unwrap();
+            let _ = store.read(&id, "alice");
+        }
+        assert!(store.verify_audit_chain().is_ok());
+    }
+
+    #[test]
+    fn audit_chain_detects_tampering() {
+        let mut store = Store::new();
+        let r = Record::new("rec:tamper", DataTier::Critical,
+            "alice", vec![1], [0u8; 32]).unwrap();
+        store.write(r).unwrap();
+        let _ = store.read("rec:tamper", "alice");
+        // Tamper with the first entry
+        store.audit_log[0].record_id = "injected".to_string();
+        assert_eq!(store.verify_audit_chain(), Err(EdisonError::AuditChainBroken));
     }
 }
