@@ -1,204 +1,100 @@
-use clap::{Parser, Subcommand};
-use edisondb::{Store, Record, DataTier, encrypt_payload, decrypt_payload, derive_key};
+use edisondb::{executor::EqlExecutor, eql::parse};
 use rpassword::read_password;
+use rustyline::{DefaultEditor, error::ReadlineError};
 use std::io::{self, Write};
-use rand::RngCore;
-use zeroize::Zeroize;
-
-#[derive(Parser)]
-#[command(name = "edisondb")]
-#[command(about = "EdisonDB - Sovereign data storage")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Write an encrypted record to the store
-    Write {
-        #[arg(long)]
-        id: u64,
-        #[arg(long)]
-        owner: String,
-        #[arg(long)]
-        tier: String,
-        #[arg(long)]
-        data: String,
-    },
-    /// Read and decrypt a record (owner only)
-    Read {
-        #[arg(long)]
-        id: u64,
-        #[arg(long)]
-        requester: String,
-    },
-    /// List all records belonging to an owner
-    List {
-        #[arg(long)]
-        owner: String,
-    },
-    /// Delete a record (owner only)
-    Delete {
-        #[arg(long)]
-        id: u64,
-        #[arg(long)]
-        owner: String,
-    },
-    /// Show the full audit log
-    Audit,
-}
 
 const DB_PATH: &str = "edison.redb";
-
-fn prompt_password(prompt: &str) -> String {
-    print!("{}", prompt);
-    if io::stdout().flush().is_err() {
-        return String::new();
-    }
-    read_password().unwrap_or_default()
-}
+const HISTORY: &str = ".eql_history";
 
 fn main() {
-    let cli = Cli::parse();
+    print_banner();
 
-    match cli.command {
-        Commands::Write { id, owner, tier, data } => {
-            let data_tier = match tier.as_str() {
-                "critical" => DataTier::Critical,
-                "personal" => DataTier::Personal,
-                "noise"    => DataTier::Noise,
-                _ => {
-                    println!("Unknown tier. Use: critical, personal, noise");
-                    return;
-                }
-            };
+    // ── Session credentials ───────────────────────────────────────────────
+    let owner_id = prompt_line("Owner ID : ");
+    if owner_id.is_empty() {
+        eprintln!("Owner ID cannot be empty.");
+        return;
+    }
 
-            let mut password = prompt_password("Enter owner password: ");
-            let mut salt = [0u8; 32];
-            rand::thread_rng().fill_bytes(&mut salt);
-            let mut key = match derive_key(&password, &salt) {
-                Ok(k) => k,
-                Err(_) => {
-                    password.zeroize();
-                    println!("Error: key derivation failed.");
-                    return;
-                }
-            };
-            let encrypted = match encrypt_payload(data.as_bytes(), &key) {
-                Ok(e) => e,
-                Err(_) => {
-                    password.zeroize();
-                    key.zeroize();
-                    println!("Error: encryption failed.");
-                    return;
-                }
-            };
+    print!("Password : ");
+    io::stdout().flush().ok();
+    let password = read_password().unwrap_or_default();
+    if password.is_empty() {
+        eprintln!("Password cannot be empty.");
+        return;
+    }
 
-            let mut store = load_store();
-            match Record::new(id, data_tier, &owner, encrypted, salt) {
-                Ok(record) => {
-                    if let Err(e) = store.write(record) {
-                        println!("Error: {}", e);
-                        return;
-                    }
-                    if store.save(DB_PATH).is_err() {
-                        println!("Error: failed to save database.");
-                    } else {
-                        println!("Record {} written and encrypted.", id);
-                    }
-                }
-                Err(e) => println!("Error: {:?}", e),
-            }
-            password.zeroize();
-            key.zeroize();
-        }
+    // ── Open database ─────────────────────────────────────────────────────
+    let mut ex = match EqlExecutor::open(DB_PATH, &owner_id, &password) {
+        Ok(e)  => e,
+        Err(e) => { eprintln!("Failed to open database: {e}"); return; }
+    };
 
-        Commands::Read { id, requester } => {
-            let mut store = load_store();
-            match store.read(id, &requester) {
-                Ok(record) => {
-                    let mut password = prompt_password("Enter owner password: ");
-                    let mut key = match derive_key(&password, &record.salt) {
-                        Ok(k) => k,
-                        Err(_) => {
-                            password.zeroize();
-                            println!("Error: key derivation failed.");
-                            return;
-                        }
-                    };
-                    match decrypt_payload(&record.payload, &key) {
-                        Ok(decrypted) => {
-                            let data = String::from_utf8_lossy(&decrypted);
-                            println!("Record {}:", id);
-                            println!("  Owner: {}", record.owner_id);
-                            println!("  Tier:  {:?}", record.tier);
-                            println!("  Data:  {}", data);
-                        }
-                        Err(_) => println!("Wrong password — cannot decrypt."),
-                    }
-                    password.zeroize();
-                    key.zeroize();
-                    if store.save(DB_PATH).is_err() {
-                        println!("Error: failed to save database.");
-                    }
-                }
-                Err(e) => println!("Access denied: {:?}", e),
-            }
-        }
+    println!("\nDatabase : {DB_PATH}");
+    println!("Owner    : {owner_id}");
+    println!("Type EQL statements or 'help'. Ctrl-C / Ctrl-D to exit.\n");
 
-        Commands::List { owner } => {
-            let store = load_store();
-            let records = store.list_by_owner(&owner);
-            if records.is_empty() {
-                println!("No records found for owner: {}", owner);
-            } else {
-                println!("Records for {}:", owner);
-                for r in records {
-                    println!("  ID: {}  Tier: {:?}", r.id, r.tier);
+    // ── REPL ──────────────────────────────────────────────────────────────
+    let mut rl = DefaultEditor::new().expect("readline init failed");
+    let _ = rl.load_history(HISTORY);
+
+    loop {
+        match rl.readline("eql> ") {
+            Ok(line) => {
+                let line = line.trim().to_string();
+                if line.is_empty() { continue; }
+
+                let _ = rl.add_history_entry(&line);
+
+                if line.eq_ignore_ascii_case("help") {
+                    print_help();
+                    continue;
+                }
+                if line.eq_ignore_ascii_case("exit")
+                    || line.eq_ignore_ascii_case("quit") {
+                    break;
+                }
+
+                match parse(&line) {
+                    Err(e) => eprintln!("Parse error: {e}"),
+                    Ok(stmt) => match ex.execute(stmt) {
+                        Ok(result) => println!("{result}"),
+                        Err(e)     => eprintln!("Error: {e}"),
+                    },
                 }
             }
-        }
-
-        Commands::Delete { id, owner } => {
-            let mut store = load_store();
-            match store.delete(id, &owner) {
-                Ok(()) => {
-                    if store.save(DB_PATH).is_err() {
-                        println!("Error: failed to save database.");
-                        return;
-                    }
-                    println!("Record {} deleted.", id);
-                }
-                Err(e) => println!("Delete failed: {:?}", e),
-            }
-        }
-
-        Commands::Audit => {
-            let store = load_store();
-            let entries = store.audit_entries();
-            if entries.is_empty() {
-                println!("No audit entries.");
-            } else {
-                println!("Audit log ({} entries):", entries.len());
-                println!("  {:<8} {:<12} {:<15} Time",
-                    "Record", "By", "Action");
-                println!("  {}", "-".repeat(50));
-                for e in entries {
-                    let action = match e.action {
-                        edisondb::AuditAction::Write => "WRITE",
-                        edisondb::AuditAction::ReadGranted => "READ_OK",
-                        edisondb::AuditAction::ReadDenied => "READ_DENIED",
-                        edisondb::AuditAction::Delete => "DELETE",
-                    };
-                    println!("  {:<8} {:<12} {:<15} {}",
-                        e.record_id, e.requester_id, action, e.timestamp);
-                }
-            }
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
+            Err(e) => { eprintln!("Readline error: {e}"); break; }
         }
     }
+
+    let _ = rl.save_history(HISTORY);
+    println!("\nSession closed. Goodbye.");
 }
 
-fn load_store() -> Store {
-    Store::load(DB_PATH).unwrap_or_else(|_| Store::new())
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+fn prompt_line(prompt: &str) -> String {
+    print!("{prompt}");
+    io::stdout().flush().ok();
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf).ok();
+    buf.trim().to_string()
+}
+
+fn print_banner() {
+    println!("╔══════════════════════════════════════╗");
+    println!("║        EdisonDB  —  EQL Shell        ║");
+    println!("║   Sovereign. Encrypted. Yours.       ║");
+    println!("╚══════════════════════════════════════╝");
+    println!();
+}
+
+fn print_help() {
+    println!("  WRITE <id> TIER <CRITICAL|PERSONAL|NOISE> <payload>");
+    println!("  READ  <id>");
+    println!("  LIST  [TIER <CRITICAL|PERSONAL|NOISE>]");
+    println!("  DELETE <id>");
+    println!("  AUDIT  [<id>]");
+    println!("  help | exit | quit");
 }
