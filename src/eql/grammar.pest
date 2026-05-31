@@ -1,0 +1,15 @@
+WHITESPACE = _{ " " | "\t" }
+NEWLINE    = _{ "\n" | "\r\n" | "\r" }
+
+id      = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
+tier    =  { ^"CRITICAL" | ^"PERSONAL" | ^"NOISE" }
+payload = @{ (!NEWLINE ~ ANY)+ }
+
+write_stmt  = { ^"WRITE"  ~ id ~ ^"TIER" ~ tier ~ payload }
+read_stmt   = { ^"READ"   ~ id }
+list_stmt   = { ^"LIST"   ~ (^"TIER" ~ tier)? }
+delete_stmt = { ^"DELETE" ~ id }
+audit_stmt  = { ^"AUDIT"  ~ id? }
+
+statement = _{ write_stmt | read_stmt | list_stmt | delete_stmt | audit_stmt }
+program   =  { SOI ~ WHITESPACE* ~ statement ~ WHITESPACE* ~ EOI }

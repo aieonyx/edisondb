@@ -6,6 +6,8 @@ use aes_gcm::aead::{Aead, KeyInit};
 use rand::RngCore;
 use argon2::Argon2;
 use redb::{Database, TableDefinition, ReadableTable};
+pub mod eql;
+pub mod executor;
 
 const RECORDS_TABLE: TableDefinition<u64, &str> = TableDefinition::new("records");
 const AUDIT_TABLE: TableDefinition<u64, &str> = TableDefinition::new("audit");
