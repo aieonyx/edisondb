@@ -1,29 +1,7 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use rand::RngCore;
 
 use crate::{DataTier, EdisonError, Record, Store, decrypt_payload, derive_key, encrypt_payload};
 use crate::eql::{Statement, Tier};
-
-// ── ID hashing ────────────────────────────────────────────────────────────────
-// M1: string IDs hashed to u64 to match existing Record.id: u64.
-// M2 migration: change Record.id to String, remove this.
-fn id_hash(s: &str) -> u64 {
-    let mut h = DefaultHasher::new();
-    s.hash(&mut h);
-    h.finish()
-}
-
-// ── Payload envelope ──────────────────────────────────────────────────────────
-// The string ID is embedded inside the encrypted envelope so LIST can recover it.
-// Format: "<string_id>\n<payload>"
-fn encode(id: &str, payload: &str) -> String {
-    format!("{}\n{}", id, payload)
-}
-
-fn decode(raw: &str) -> (&str, &str) {
-    raw.split_once('\n').unwrap_or(("", raw))
-}
 
 // ── Tier conversion ───────────────────────────────────────────────────────────
 fn to_data_tier(t: &Tier) -> DataTier {
@@ -115,56 +93,53 @@ impl EqlExecutor {
         tier: Tier,
         payload: String,
     ) -> Result<EqlResult, EdisonError> {
-        let mut salt = [0u8; 32];
+        let data_tier = to_data_tier(&tier);
+        let mut salt  = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut salt);
         let key       = derive_key(&self.password, &salt)?;
-        let envelope  = encode(&id, &payload);
-        let encrypted = encrypt_payload(envelope.as_bytes(), &key)?;
-        let record    = Record::new(id_hash(&id), to_data_tier(&tier), &self.owner_id, encrypted, salt)?;
+        // AAD bound to id + tier — transplant attacks impossible
+        let encrypted = encrypt_payload(payload.as_bytes(), &key, &id, &data_tier)?;
+        let record    = Record::new(&id, data_tier, &self.owner_id, encrypted, salt)?;
         self.store.write(record)?;
         self.store.save(&self.db_path)?;
         Ok(EqlResult::Written { id, tier })
     }
 
     fn exec_read(&mut self, id: String) -> Result<EqlResult, EdisonError> {
-        let id_num = id_hash(&id);
-        // Clone needed fields before mutable borrow of store ends
         let (salt, payload, tier) = {
-            let record = self.store.read(id_num, &self.owner_id)?;
+            let record = self.store.read(&id, &self.owner_id)?;
             (record.salt, record.payload.clone(), record.tier.clone())
         };
         let key       = derive_key(&self.password, &salt)?;
-        let decrypted = decrypt_payload(&payload, &key)?;
-        let raw       = String::from_utf8(decrypted).map_err(|_| EdisonError::DecryptionFailed)?;
-        let (_, data) = decode(&raw);
-        Ok(EqlResult::Read { id, tier, payload: data.to_string() })
+        // AAD must match — wrong id or tier = decryption failure
+        let decrypted = decrypt_payload(&payload, &key, &id, &tier)?;
+        let data      = String::from_utf8(decrypted).map_err(|_| EdisonError::DecryptionFailed)?;
+        Ok(EqlResult::Read { id, tier, payload: data })
     }
 
     fn exec_list(&mut self, tier_filter: Option<Tier>) -> Result<EqlResult, EdisonError> {
-        // Collect owned snapshots first — releases the borrow on self.store
-        // so we can use self.password for key derivation in the loop.
-        let snapshots: Vec<([u8; 32], Vec<u8>, DataTier, u64)> = self.store
+        // Collect owned snapshots first to release borrow on self.store
+        let snapshots: Vec<(String, [u8; 32], Vec<u8>, DataTier, u64)> = self.store
             .list_by_owner(&self.owner_id)
             .into_iter()
-            .map(|r| (r.salt, r.payload.clone(), r.tier.clone(), r.created_at))
+            .map(|r| (r.id.clone(), r.salt, r.payload.clone(), r.tier.clone(), r.created_at))
             .collect();
 
         let mut infos = Vec::new();
-        for (salt, payload, tier, created_at) in snapshots {
+        for (id, salt, payload, tier, created_at) in snapshots {
             if let Some(ref tf) = tier_filter {
                 if to_data_tier(tf) != tier { continue; }
             }
-            let key       = derive_key(&self.password, &salt)?;
-            let decrypted = decrypt_payload(&payload, &key)?;
-            let raw       = String::from_utf8(decrypted).map_err(|_| EdisonError::DecryptionFailed)?;
-            let (string_id, _) = decode(&raw);
-            infos.push(RecordInfo { string_id: string_id.to_string(), tier, created_at });
+            let key = derive_key(&self.password, &salt)?;
+            // Verify AAD integrity on list — corrupt/transplanted records surface here
+            let _ = decrypt_payload(&payload, &key, &id, &tier)?;
+            infos.push(RecordInfo { string_id: id, tier, created_at });
         }
         Ok(EqlResult::Listed(infos))
     }
 
     fn exec_delete(&mut self, id: String) -> Result<EqlResult, EdisonError> {
-        self.store.delete(id_hash(&id), &self.owner_id)?;
+        self.store.delete(&id, &self.owner_id)?;
         self.store.save(&self.db_path)?;
         Ok(EqlResult::Deleted { id })
     }
@@ -174,7 +149,7 @@ impl EqlExecutor {
             .audit_entries()
             .iter()
             .filter(|e| match &id {
-                Some(filter) => e.record_id == id_hash(filter),
+                Some(filter) => &e.record_id == filter,
                 None         => true,
             })
             .map(|e| format!(
