@@ -9,6 +9,7 @@ use redb::{Database, TableDefinition, ReadableTable};
 use sha2::{Sha256, Digest};
 pub mod eql;
 pub mod executor;
+pub mod backend;
 
 const RECORDS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("records");
 const AUDIT_TABLE: TableDefinition<&str, &str> = TableDefinition::new("audit");

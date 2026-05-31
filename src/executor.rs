@@ -1,6 +1,7 @@
 use rand::RngCore;
 
-use crate::{DataTier, EdisonError, Record, Store, decrypt_payload, derive_key, encrypt_payload};
+use crate::{DataTier, EdisonError, Record, decrypt_payload, derive_key, encrypt_payload};
+use crate::backend::{RedbBackend, Router};
 use crate::eql::{Statement, Tier};
 
 // ── Tier conversion ───────────────────────────────────────────────────────────
@@ -56,24 +57,19 @@ impl std::fmt::Display for EqlResult {
 
 // ── Executor ──────────────────────────────────────────────────────────────────
 pub struct EqlExecutor {
-    store:    Store,
+    router:   Router,
     owner_id: String,
     password: String,
-    db_path:  String,
 }
 
 impl EqlExecutor {
     pub fn open(path: &str, owner_id: &str, password: &str) -> Result<Self, EdisonError> {
-        let store = if std::path::Path::new(path).exists() {
-            Store::load(path)?
-        } else {
-            Store::new()
-        };
+        let backend = RedbBackend::open(path)?;
+        let router  = Router::new(Box::new(backend));
         Ok(Self {
-            store,
+            router,
             owner_id: owner_id.to_string(),
             password: password.to_string(),
-            db_path:  path.to_string(),
         })
     }
 
@@ -100,14 +96,14 @@ impl EqlExecutor {
         // AAD bound to id + tier — transplant attacks impossible
         let encrypted = encrypt_payload(payload.as_bytes(), &key, &id, &data_tier)?;
         let record    = Record::new(&id, data_tier, &self.owner_id, encrypted, salt)?;
-        self.store.write(record)?;
-        self.store.save(&self.db_path)?;
+        self.router.write(record)?;
+        self.router.save()?;
         Ok(EqlResult::Written { id, tier })
     }
 
     fn exec_read(&mut self, id: String) -> Result<EqlResult, EdisonError> {
         let (salt, payload, tier) = {
-            let record = self.store.read(&id, &self.owner_id)?;
+            let record = self.router.read(&id, &self.owner_id)?;
             (record.salt, record.payload.clone(), record.tier.clone())
         };
         let key       = derive_key(&self.password, &salt)?;
@@ -119,7 +115,7 @@ impl EqlExecutor {
 
     fn exec_list(&mut self, tier_filter: Option<Tier>) -> Result<EqlResult, EdisonError> {
         // Collect owned snapshots first to release borrow on self.store
-        let snapshots: Vec<(String, [u8; 32], Vec<u8>, DataTier, u64)> = self.store
+        let snapshots: Vec<(String, [u8; 32], Vec<u8>, DataTier, u64)> = self.router
             .list_by_owner(&self.owner_id)
             .into_iter()
             .map(|r| (r.id.clone(), r.salt, r.payload.clone(), r.tier.clone(), r.created_at))
@@ -139,14 +135,14 @@ impl EqlExecutor {
     }
 
     fn exec_delete(&mut self, id: String) -> Result<EqlResult, EdisonError> {
-        self.store.delete(&id, &self.owner_id)?;
-        self.store.save(&self.db_path)?;
+        self.router.delete(&id, &self.owner_id)?;
+        self.router.save()?;
         Ok(EqlResult::Deleted { id })
     }
 
     fn exec_audit(&self, id: Option<String>) -> Result<EqlResult, EdisonError> {
-        let lines = self.store
-            .audit_entries()
+        let entries = self.router.audit_entries();
+        let lines = entries
             .iter()
             .filter(|e| match &id {
                 Some(filter) => &e.record_id == filter,
@@ -174,14 +170,14 @@ pub struct DbStats {
 
 impl EqlExecutor {
     pub fn stats(&self) -> DbStats {
-        let records: Vec<_> = self.store.list_by_owner(&self.owner_id);
+        let records: Vec<_> = self.router.list_by_owner(&self.owner_id);
         let critical_count = records.iter().filter(|r| r.tier == crate::DataTier::Critical).count();
         let personal_count = records.iter().filter(|r| r.tier == crate::DataTier::Personal).count();
         let noise_count    = records.iter().filter(|r| r.tier == crate::DataTier::Noise).count();
-        let chain_valid    = self.store.verify_audit_chain().is_ok();
+        let chain_valid    = self.router.verify_audit_chain().is_ok();
         DbStats {
             record_count: records.len(),
-            audit_count:  self.store.audit_count(),
+            audit_count:  self.router.audit_count(),
             critical_count,
             personal_count,
             noise_count,
@@ -190,11 +186,11 @@ impl EqlExecutor {
     }
 
     pub fn verify_chain(&self) -> Result<(), crate::EdisonError> {
-        self.store.verify_audit_chain()
+        self.router.verify_audit_chain()
     }
 
     pub fn save(&self) -> Result<(), crate::EdisonError> {
-        self.store.save(&self.db_path)
+        self.router.save()
     }
 }
 
