@@ -9,13 +9,12 @@ const HISTORY: &str = ".eql_history";
 fn main() {
     print_banner();
 
-    // ── Session credentials ───────────────────────────────────────────────
+    // -- Session credentials -----------------------------------------------
     let owner_id = prompt_line("Owner ID : ");
     if owner_id.is_empty() {
         eprintln!("Owner ID cannot be empty.");
         return;
     }
-
     print!("Password : ");
     io::stdout().flush().ok();
     let password = read_password().unwrap_or_default();
@@ -24,7 +23,7 @@ fn main() {
         return;
     }
 
-    // ── Open database ─────────────────────────────────────────────────────
+    // -- Open database ------------------------------------------------------
     let mut ex = match EqlExecutor::open(DB_PATH, &owner_id, &password) {
         Ok(e)  => e,
         Err(e) => { eprintln!("Failed to open database: {e}"); return; }
@@ -34,33 +33,37 @@ fn main() {
     println!("Owner    : {owner_id}");
     println!("Type EQL statements or 'help'. Ctrl-C / Ctrl-D to exit.\n");
 
-    // ── REPL ──────────────────────────────────────────────────────────────
+    // -- REPL ---------------------------------------------------------------
     let mut rl = DefaultEditor::new().expect("readline init failed");
     let _ = rl.load_history(HISTORY);
 
-    loop {
+    'repl: loop {
         match rl.readline("eql> ") {
             Ok(line) => {
-                let line = line.trim().to_string();
-                if line.is_empty() { continue; }
+                // Split on newlines to handle multi-line paste gracefully.
+                // Each physical line is treated as one EQL statement.
+                for raw in line.split('\n') {
+                    let stmt = raw.trim().to_string();
+                    if stmt.is_empty() { continue; }
 
-                let _ = rl.add_history_entry(&line);
+                    let _ = rl.add_history_entry(&stmt);
 
-                if line.eq_ignore_ascii_case("help") {
-                    print_help();
-                    continue;
-                }
-                if line.eq_ignore_ascii_case("exit")
-                    || line.eq_ignore_ascii_case("quit") {
-                    break;
-                }
+                    if stmt.eq_ignore_ascii_case("help") {
+                        print_help();
+                        continue;
+                    }
+                    if stmt.eq_ignore_ascii_case("exit")
+                        || stmt.eq_ignore_ascii_case("quit") {
+                        break 'repl;
+                    }
 
-                match parse(&line) {
-                    Err(e) => eprintln!("Parse error: {e}"),
-                    Ok(stmt) => match ex.execute(stmt) {
-                        Ok(result) => println!("{result}"),
-                        Err(e)     => eprintln!("Error: {e}"),
-                    },
+                    match parse(&stmt) {
+                        Err(e)   => eprintln!("Parse error: {e}"),
+                        Ok(stmt) => match ex.execute(stmt) {
+                            Ok(result) => println!("{result}"),
+                            Err(e)     => eprintln!("Error: {e}"),
+                        },
+                    }
                 }
             }
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
@@ -72,8 +75,7 @@ fn main() {
     println!("\nSession closed. Goodbye.");
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
+// -- Helpers -----------------------------------------------------------------
 fn prompt_line(prompt: &str) -> String {
     print!("{prompt}");
     io::stdout().flush().ok();
