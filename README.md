@@ -14,7 +14,7 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/EdisonDB-v0.1--alpha-gold?style=for-the-badge" alt="version"/>
+<img src="https://img.shields.io/badge/EdisonDB-v0.1.0--alpha.2-gold?style=for-the-badge" alt="version"/>
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="license"/>
 <img src="https://img.shields.io/badge/Language-Rust-orange?style=for-the-badge&logo=rust" alt="rust"/>
 <img src="https://img.shields.io/badge/Status-Active%20Development-green?style=for-the-badge" alt="status"/>
@@ -40,33 +40,39 @@ Built in Rust. Encrypted by default. Yours forever.
 </div>
 
 ---
-## Current Status — What Works Today
+## Current Status — Phase 1 Alpha Complete ✅
 
-EdisonDB is in early prototype stage. The following features are **implemented and tested**:
+**EdisonDB v0.1.0-alpha.2** — Phase 1 Alpha is complete and shipped.  
+All Phase 1 deliverables are implemented, tested, and live on GitHub.
 
-- **Data Tier Model** — Critical, Personal, and Noise tiers with different access rules
-- **Owner-Only Access Control** — only the record owner can read or delete their data
-- **AES-256-GCM Encryption** — all payloads encrypted before writing to disk
-- **Argon2 Key Derivation** — owner password converted to encryption key
-- **Per-Record Random Salt** — each record has its own unique salt
-- **Persistent Audit Log** — every write, read, and denied access recorded to disk
-- **CLI** — write, read, list, delete, and audit commands working
-- **20 Passing Tests** — covering access control, encryption, persistence, and audit
+### What Works Today
 
-### What Is Not Built Yet
+| Feature | Status |
+|---|---|
+| **EQL Query Language** — WRITE / READ / LIST / DELETE / AUDIT with TIER syntax | ✅ Shipped |
+| **AES-256-GCM Encryption** — all payloads encrypted at rest, always on | ✅ Shipped |
+| **Argon2id Key Derivation** — per-record random salt, password-derived keys | ✅ Shipped |
+| **AAD Encryption** — ciphertext bound to record ID + tier, transplant attacks blocked | ✅ Shipped |
+| **Data Tier Model** — CRITICAL / PERSONAL / NOISE with owner-only access control | ✅ Shipped |
+| **Hash-Chained Audit Log** — tamper-evident, SHA-256 chain, verify command | ✅ Shipped |
+| **`edctl` CLI** — `init`, `shell`, `status`, `verify` subcommands | ✅ Shipped |
+| **Routing Layer** — `StorageBackend` trait, `RedbBackend`, `Router` | ✅ Shipped |
+| **Rust SDK** — `EdisonDB` client, `SdkRecord`, full API, crates.io ready | ✅ Shipped |
+| **57 Tests** — unit, integration, doctests — 0 failures | ✅ Shipped |
 
-The sections below describe the full vision and roadmap. The following features are **planned but not yet implemented**:
+### What Is Coming — Phase 2 Beta
 
-- EQL query language
-- Vector search and auto-embedding
-- Graph traversal
-- Multiple deployment modes
-- Network layer and API server
-- Distributed cluster
-- AI intelligence layer
-- Real identity management
+The following features are **planned for Phase 2 (Month 10–18)**:
 
-The code is approximately 350 lines of Rust. It is a working foundation — not a production database.
+- Native LSM-tree storage engine (replaces redb)
+- HNSW vector index — sub-millisecond semantic search
+- Auto-embedding pipeline — local AI, no external API
+- REST + gRPC server mode
+- Python + TypeScript SDKs
+- EdisonDB Studio — web UI
+
+> **Download the binary** — [EdisonDB v0.1.0-alpha.2 Release](https://github.com/aieonyx/edisondb/releases/tag/v0.1.0-alpha.2)  
+> Single binary, 2.8MB, no dependencies required.
 
 ---
 
