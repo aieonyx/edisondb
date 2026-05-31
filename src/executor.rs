@@ -114,8 +114,9 @@ impl EqlExecutor {
     }
 
     fn exec_list(&mut self, tier_filter: Option<Tier>) -> Result<EqlResult, EdisonError> {
-        // Collect owned snapshots first to release borrow on self.store
-        let snapshots: Vec<(String, [u8; 32], Vec<u8>, DataTier, u64)> = self.router
+        // Collect owned snapshots first to release borrow on self.router
+        type Snapshot = (String, [u8; 32], Vec<u8>, DataTier, u64);
+        let snapshots: Vec<Snapshot> = self.router
             .list_by_owner(&self.owner_id)
             .into_iter()
             .map(|r| (r.id.clone(), r.salt, r.payload.clone(), r.tier.clone(), r.created_at))
@@ -123,8 +124,8 @@ impl EqlExecutor {
 
         let mut infos = Vec::new();
         for (id, salt, payload, tier, created_at) in snapshots {
-            if let Some(ref tf) = tier_filter {
-                if to_data_tier(tf) != tier { continue; }
+            if tier_filter.as_ref().is_some_and(|tf| to_data_tier(tf) != tier) {
+                continue;
             }
             let key = derive_key(&self.password, &salt)?;
             // Verify AAD integrity on list — corrupt/transplanted records surface here
