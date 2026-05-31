@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="EdisonDB Banner">
+</p>
+
 ## [PERSONAL NOTE] Why I built this?
 
 "Light for your data."
