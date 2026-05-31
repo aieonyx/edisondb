@@ -161,6 +161,43 @@ impl EqlExecutor {
     }
 }
 
+// ── Stats & verification ─────────────────────────────────────────────────────────
+#[derive(Debug)]
+pub struct DbStats {
+    pub record_count:   usize,
+    pub audit_count:    usize,
+    pub critical_count: usize,
+    pub personal_count: usize,
+    pub noise_count:    usize,
+    pub chain_valid:    bool,
+}
+
+impl EqlExecutor {
+    pub fn stats(&self) -> DbStats {
+        let records: Vec<_> = self.store.list_by_owner(&self.owner_id);
+        let critical_count = records.iter().filter(|r| r.tier == crate::DataTier::Critical).count();
+        let personal_count = records.iter().filter(|r| r.tier == crate::DataTier::Personal).count();
+        let noise_count    = records.iter().filter(|r| r.tier == crate::DataTier::Noise).count();
+        let chain_valid    = self.store.verify_audit_chain().is_ok();
+        DbStats {
+            record_count: records.len(),
+            audit_count:  self.store.audit_count(),
+            critical_count,
+            personal_count,
+            noise_count,
+            chain_valid,
+        }
+    }
+
+    pub fn verify_chain(&self) -> Result<(), crate::EdisonError> {
+        self.store.verify_audit_chain()
+    }
+
+    pub fn save(&self) -> Result<(), crate::EdisonError> {
+        self.store.save(&self.db_path)
+    }
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
