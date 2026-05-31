@@ -1,7 +1,16 @@
 [package]
 name = "edisondb"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2024"
+description = "The sovereign, AI-native, multi-model database engine. Encrypted by default. Yours forever."
+license = "Apache-2.0"
+repository = "https://github.com/aieonyx/edisondb"
+homepage = "https://edisondb.com"
+documentation = "https://docs.rs/edisondb"
+readme = "README.md"
+keywords = ["database", "encryption", "sovereignty", "embedded", "rust"]
+categories = ["database", "cryptography", "data-structures"]
+authors = ["Edison Lepiten <aieonyx.eu@gmail.com>"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

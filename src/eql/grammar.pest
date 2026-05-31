@@ -1,7 +1,7 @@
 WHITESPACE = _{ " " | "\t" }
 NEWLINE    = _{ "\n" | "\r\n" | "\r" }
 
-id      = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
+id      = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_" | "-" | ":")* }
 tier    =  { ^"CRITICAL" | ^"PERSONAL" | ^"NOISE" }
 payload = @{ (!NEWLINE ~ ANY)+ }
 

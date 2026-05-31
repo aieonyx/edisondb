@@ -189,6 +189,20 @@ impl EqlExecutor {
         self.router.verify_audit_chain()
     }
 
+    pub fn audit_log(&self, id: Option<&str>) -> Vec<crate::AuditEntry> {
+        self.router.audit_entries()
+            .into_iter()
+            .filter(|e| match id {
+                Some(filter) => e.record_id == filter,
+                None         => true,
+            })
+            .collect()
+    }
+
+    pub fn backend_name(&self) -> &str {
+        self.router.backend_name()
+    }
+
     pub fn save(&self) -> Result<(), crate::EdisonError> {
         self.router.save()
     }

@@ -10,6 +10,7 @@ use sha2::{Sha256, Digest};
 pub mod eql;
 pub mod executor;
 pub mod backend;
+pub mod sdk;
 
 const RECORDS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("records");
 const AUDIT_TABLE: TableDefinition<&str, &str> = TableDefinition::new("audit");
