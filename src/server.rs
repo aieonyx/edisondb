@@ -161,6 +161,8 @@ async fn handle_delete(
     let mut db = open_db(&state, &owner, &password)?;
     db.delete(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, Json(ApiError { error: e.to_string() })))?;
+    db.persist()
+        .map_err(|e: edisondb::EdisonError| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError { error: e.to_string() })))?;
     Ok(Json(ApiOk { ok: true }))
 }
 

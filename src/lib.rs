@@ -259,6 +259,16 @@ impl Store {
         {
             let mut table = write_txn.open_table(RECORDS_TABLE)
                 .map_err(|_| EdisonError::SaveFailed)?;
+            // Drain all existing entries first so deletes are persisted
+            let keys: Vec<String> = table.iter()
+                .map_err(|_| EdisonError::SaveFailed)?
+                .flatten()
+                .map(|(k, _)| k.value().to_string())
+                .collect();
+            for key in keys {
+                table.remove(key.as_str())
+                    .map_err(|_| EdisonError::SaveFailed)?;
+            }
             for (id, record) in &self.records {
                 let json = serde_json::to_string(record)
                     .map_err(|_| EdisonError::SaveFailed)?;

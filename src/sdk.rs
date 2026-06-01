@@ -176,6 +176,11 @@ impl EdisonDB {
         self.executor.verify_chain()
     }
 
+    /// Persist the current state to disk explicitly.
+    pub fn persist(&self) -> Result<(), EdisonError> {
+        self.executor.save()
+    }
+
     /// Return the name of the active storage backend.
     pub fn backend(&self) -> &str {
         self.executor.backend_name()
