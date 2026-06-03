@@ -1,7 +1,7 @@
 use rand::RngCore;
 
 use crate::{DataTier, EdisonError, Record, decrypt_payload, derive_key, encrypt_payload};
-use crate::backend::{RedbBackend, Router};
+use crate::backends::{RedbBackend, FjallBackend, Router};
 use crate::eql::{Statement, Tier};
 
 // ── Tier conversion ───────────────────────────────────────────────────────────
@@ -64,8 +64,12 @@ pub struct EqlExecutor {
 
 impl EqlExecutor {
     pub fn open(path: &str, owner_id: &str, password: &str) -> Result<Self, EdisonError> {
-        let backend = RedbBackend::open(path)?;
-        let router  = Router::new(Box::new(backend));
+        let backend_type = std::env::var("EDISONDB_BACKEND")
+            .unwrap_or_else(|_| "redb".to_string());
+        let router = match backend_type.to_lowercase().as_str() {
+            "fjall" => Router::new(Box::new(FjallBackend::open(path)?)),
+            _       => Router::new(Box::new(RedbBackend::open(path)?)),
+        };
         Ok(Self {
             router,
             owner_id: owner_id.to_string(),
@@ -217,6 +221,7 @@ mod tests {
 
     fn fresh(path: &str) -> EqlExecutor {
         let _ = std::fs::remove_file(path);
+        let _ = std::fs::remove_dir_all(path);
         EqlExecutor::open(path, "owner", "password").unwrap()
     }
 
@@ -260,8 +265,11 @@ mod tests {
     fn eql_wrong_password_fails() {
         let path = "/tmp/eql_ex_4.redb";
         let _ = std::fs::remove_file(path);
-        let mut ex1 = EqlExecutor::open(path, "owner", "correct").unwrap();
-        ex1.execute(parse("WRITE k1 TIER CRITICAL secret").unwrap()).unwrap();
+        let _ = std::fs::remove_dir_all(path);
+        {
+            let mut ex1 = EqlExecutor::open(path, "owner", "correct").unwrap();
+            ex1.execute(parse("WRITE k1 TIER CRITICAL secret").unwrap()).unwrap();
+        } // ex1 dropped here — releases fjall file lock
         let mut ex2 = EqlExecutor::open(path, "owner", "wrong").unwrap();
         assert!(ex2.execute(parse("READ k1").unwrap()).is_err());
     }

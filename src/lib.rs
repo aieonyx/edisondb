@@ -9,7 +9,7 @@ use redb::{Database, TableDefinition, ReadableTable};
 use sha2::{Sha256, Digest};
 pub mod eql;
 pub mod executor;
-pub mod backend;
+pub mod backends;
 pub mod sdk;
 
 const RECORDS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("records");
@@ -59,7 +59,7 @@ impl Record {
             owner_id: owner_id.to_string(),
             payload,
             salt,
-            created_at: now(),
+            created_at: now_secs(),
         })
     }
 
@@ -155,7 +155,7 @@ impl Store {
             record_id,
             requester_id,
             action,
-            timestamp: now(),
+            timestamp: now_secs(),
             prev_hash,
         });
     }
@@ -320,7 +320,7 @@ impl Store {
     }
 }
 
-fn now() -> u64 {
+pub fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
