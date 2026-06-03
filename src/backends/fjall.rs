@@ -144,12 +144,11 @@ impl StorageBackend for FjallBackend {
         let mut records = Vec::new();
         for ks in [&self.critical, &self.personal, &self.noise] {
             for guard in ks.iter() {
-                if let Ok((_, v)) = guard.into_inner() {
-                    if let Ok(r) = serde_json::from_slice::<Record>(&v) {
-                        if r.owner_id == owner_id {
-                            records.push(r);
-                        }
-                    }
+                if let Ok((_, v)) = guard.into_inner()
+                    && let Ok(r) = serde_json::from_slice::<Record>(&v)
+                    && r.owner_id == owner_id
+                {
+                    records.push(r);
                 }
             }
         }
