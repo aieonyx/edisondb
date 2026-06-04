@@ -40,39 +40,54 @@ Built in Rust. Encrypted by default. Yours forever.
 </div>
 
 ---
-## Current Status — Phase 1 Alpha Complete ✅
+## Current Status — Phase 2 Beta Complete ✅
 
-**EdisonDB v0.1.0-alpha.2** — Phase 1 Alpha is complete and shipped.  
-All Phase 1 deliverables are implemented, tested, and live on GitHub.
+**EdisonDB v0.5.0-beta** — Phase 2 Beta is complete and shipped.  
+All Phase 2 deliverables are implemented, tested, and live on GitHub.
 
 ### What Works Today
 
 | Feature | Status |
 |---|---|
-| **EQL Query Language** — WRITE / READ / LIST / DELETE / AUDIT with TIER syntax | ✅ Shipped |
+| **EQL Query Language** — WRITE / READ / LIST / DELETE / AUDIT / EMBED / SEARCH | ✅ Shipped |
 | **AES-256-GCM Encryption** — all payloads encrypted at rest, always on | ✅ Shipped |
-| **Argon2id Key Derivation** — per-record random salt, password-derived keys | ✅ Shipped |
 | **AAD Encryption** — ciphertext bound to record ID + tier, transplant attacks blocked | ✅ Shipped |
 | **Data Tier Model** — CRITICAL / PERSONAL / NOISE with owner-only access control | ✅ Shipped |
 | **Hash-Chained Audit Log** — tamper-evident, SHA-256 chain, verify command | ✅ Shipped |
 | **`edctl` CLI** — `init`, `shell`, `status`, `verify` subcommands | ✅ Shipped |
-| **Routing Layer** — `StorageBackend` trait, `RedbBackend`, `Router` | ✅ Shipped |
-| **Rust SDK** — `EdisonDB` client, `SdkRecord`, full API, crates.io ready | ✅ Shipped |
-| **57 Tests** — unit, integration, doctests — 0 failures | ✅ Shipped |
+| **REST Server** — Axum/Tokio, 8 endpoints + `/studio` dashboard | ✅ Shipped |
+| **fjall LSM-tree Backend** — tier-partitioned physical storage, dual-backend routing | ✅ Shipped |
+| **HNSW Vector Index** — `EMBED` / `SEARCH` EQL syntax, instant-distance | ✅ Shipped |
+| **Auto-embedding Pipeline** — `AUTO EMBED` syntax, local Ollama inference | ✅ Shipped |
+| **Python SDK** — `pip install edisondb`, full async-ready client | ✅ Shipped |
+| **TypeScript SDK** — `npm install edisondb`, full typed client | ✅ Shipped |
+| **EdisonDB Studio** — sovereign dark dashboard, all panels, live data | ✅ Shipped |
+| **58 Tests** — unit, integration, doctests — 0 failures, dual backend | ✅ Shipped |
 
-### What Is Coming — Phase 2 Beta
+### EdisonDB Studio
 
-The following features are **planned for Phase 2 (Month 10–18)**:
+![EdisonDB Studio Dashboard](assets/studio-screenshot.png)
 
-- Native LSM-tree storage engine (replaces redb)
-- HNSW vector index — sub-millisecond semantic search
-- Auto-embedding pipeline — local AI, no external API
-- REST + gRPC server mode
-- Python + TypeScript SDKs
-- EdisonDB Studio — web UI
+*Sovereign Database Control Plane — connect, browse, write, search, and verify your data locally.*
 
-> **Download the binary** — [EdisonDB v0.1.0-alpha.2 Release](https://github.com/aieonyx/edisondb/releases/tag/v0.1.0-alpha.2)  
-> Single binary, 2.8MB, no dependencies required.
+### What Is Coming — Phase 3 Stable
+
+The following features are **planned for Phase 3 (Month 19–30)**:
+
+| Feature | Description |
+|---|---|
+| **Full production storage engine** | Optimized LSM-tree with compaction, WAL, MVCC |
+| **Distributed cluster (Raft)** | Multi-node consensus, geo-partitioning |
+| **gRPC server mode** | High-performance binary protocol alongside REST |
+| **ARPi protocol integration** | AXON Receptor Protocol Interface for BASTION nodes |
+| **candle native embeddings** | Fully offline auto-embedding, no Ollama required |
+| **Access Control & Policy Engine** | Fine-grained per-tier permission rules |
+| **Migration toolkit** | Import from PostgreSQL, SQLite, MongoDB |
+| **Compliance tooling** | GDPR, EU AI Act audit reports |
+| **AXON language integration** | Formal verification of storage operations via AXON `@ensures` |
+
+> **Download the binary** — [EdisonDB v0.5.0-beta Release](https://github.com/aieonyx/edisondb/releases/tag/v0.5.0-beta)  
+> Single binary, no dependencies required. Run `edisondb-server --db myapp.redb --port 7777` then open `http://localhost:7777/studio`.
 
 ---
 
@@ -303,7 +318,7 @@ The following seven promises are made to every person who uses, builds on, or co
 | Phase | Timeline | Milestone | Key Deliverables |
 |---|---|---|---|
 | **Phase 1 — Alpha** | Month 1–9 | EdisonDB 0.1 Alpha | EQL parser, routing layer, AES-256 encryption, edctl CLI, Rust SDK, Apache 2.0 release |
-| **Phase 2 — Beta** | Month 10–18 | EdisonDB 0.5 Beta | Native LSM-tree engine, HNSW index, auto-embedding, REST + gRPC, Python + TS SDKs, EdisonDB Studio |
+| **Phase 2 — Beta** | Month 10–18 | EdisonDB 0.5 Beta ✅ | LSM-tree (fjall), HNSW vector index, auto-embedding, REST server, Python + TS SDKs, EdisonDB Studio |
 | **Phase 3 — Stable** | Month 19–30 | EdisonDB 1.0 | Full production engine, all SDKs, distributed cluster (Raft), migration toolkit, compliance tooling |
 | **Phase 4 — Scale** | Year 3+ | EdisonDB 2.0 | Horizontal auto-scaling, geo-partitioning, AI query planner v2, enterprise security suite |
 
