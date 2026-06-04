@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdisonDB Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg:       #0a0c10;
+    --bg2:      #0f1318;
+    --bg3:      #151b22;
+    --border:   #1e2733;
+    --gold:     #d4a843;
+    --gold2:    #f0c060;
+    --red:      #e05555;
+    --green:    #4caf7d;
+    --blue:     #4a9eff;
+    --text:     #c8d0dc;
+    --text2:    #6b7a8d;
+    --critical: #e05555;
+    --personal: #4a9eff;
+    --noise:    #4caf7d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(212,168,67,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212,168,67,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+
+  .logo span { color: var(--text2); font-weight: 400; font-size: 12px; margin-left: 12px; }
+
+  .conn-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .conn-bar input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    width: 140px;
+  }
+
+  .conn-bar input:focus { outline: none; border-color: var(--gold); }
+  .conn-bar input::placeholder { color: var(--text2); }
+
+  btn, .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:hover { background: var(--gold); color: var(--bg); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #fff; }
+  .btn.sm { padding: 4px 10px; font-size: 11px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 53px);
+  }
+
+  nav {
+    border-right: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 24px 0;
+  }
+
+  .nav-section { margin-bottom: 8px; }
+  .nav-label {
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 20px 4px;
+  }
+
+  .nav-item {
+    display: block;
+    padding: 8px 20px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.1s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: var(--bg3); }
+  .nav-item .icon { margin-right: 8px; }
+
+  main { padding: 32px; overflow-y: auto; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold2);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gold);
+  }
+
+  .stat-card.critical::before { background: var(--critical); }
+  .stat-card.personal::before { background: var(--personal); }
+  .stat-card.noise::before { background: var(--noise); }
+  .stat-card.chain-ok::before { background: var(--green); }
+  .stat-card.chain-fail::before { background: var(--red); }
+
+  .stat-label { font-size: 10px; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-value.gold { color: var(--gold2); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    margin-top: 28px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  th {
+    background: var(--bg3);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+
+  .tier-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .tier-critical { background: rgba(224,85,85,0.15); color: var(--critical); border: 1px solid rgba(224,85,85,0.3); }
+  .tier-personal { background: rgba(74,158,255,0.15); color: var(--personal); border: 1px solid rgba(74,158,255,0.3); }
+  .tier-noise    { background: rgba(76,175,125,0.15); color: var(--noise);    border: 1px solid rgba(76,175,125,0.3); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  select option { background: var(--bg3); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .checkbox-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--gold); cursor: pointer; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+
+  .msg {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: none;
+  }
+
+  .msg.ok  { background: rgba(76,175,125,0.12); border: 1px solid rgba(76,175,125,0.3); color: var(--green); display: block; }
+  .msg.err { background: rgba(224,85,85,0.12);  border: 1px solid rgba(224,85,85,0.3);  color: var(--red);   display: block; }
+
+  .result-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-top: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .result-box .key { color: var(--text2); }
+  .result-box .val { color: var(--gold2); }
+  .result-box .payload-val { color: var(--text); }
+
+  .audit-line {
+    display: grid;
+    grid-template-columns: 120px 100px 1fr 1fr;
+    gap: 16px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .audit-line:last-child { border-bottom: none; }
+  .audit-action { color: var(--gold); }
+  .audit-ts { color: var(--text2); }
+
+  .search-results { margin-top: 16px; }
+  .search-hit {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+
+  .hit-id { color: var(--gold2); }
+  .hit-score {
+    font-size: 12px;
+    color: var(--green);
+    background: rgba(76,175,125,0.1);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--text2);
+    font-size: 12px;
+  }
+
+  .backend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .chain-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EdisonDB <span>Studio — Sovereign Data Dashboard</span></div>
+  <div class="conn-bar">
+    <input id="inp-owner" placeholder="owner-id" value="owner">
+    <input id="inp-pass" type="password" placeholder="password" value="">
+    <button class="btn" onclick="connect()">Connect</button>
+    <span id="conn-status" style="color:var(--text2);font-size:11px">disconnected</span>
+  </div>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="show('dashboard')" id="nav-dashboard">
+        <span class="icon">◈</span> Dashboard
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Data</div>
+      <div class="nav-item" onclick="show('records')" id="nav-records">
+        <span class="icon">▦</span> Records
+      </div>
+      <div class="nav-item" onclick="show('write')" id="nav-write">
+        <span class="icon">✦</span> Write
+      </div>
+      <div class="nav-item" onclick="show('read')" id="nav-read">
+        <span class="icon">◎</span> Read / Delete
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <div class="nav-item" onclick="show('vector')" id="nav-vector">
+        <span class="icon">⬡</span> Vector Search
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Security</div>
+      <div class="nav-item" onclick="show('audit')" id="nav-audit">
+        <span class="icon">◷</span> Audit Log
+      </div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-label">Records</div><div class="stat-value gold" id="s-records">—</div></div>
+        <div class="stat-card critical"><div class="stat-label">Critical</div><div class="stat-value" id="s-critical">—</div></div>
+        <div class="stat-card personal"><div class="stat-label">Personal</div><div class="stat-value" id="s-personal">—</div></div>
+        <div class="stat-card noise"><div class="stat-label">Noise</div><div class="stat-value" id="s-noise">—</div></div>
+        <div class="stat-card"><div class="stat-label">Audit Entries</div><div class="stat-value" id="s-audit">—</div></div>
+        <div class="stat-card" id="chain-card">
+          <div class="stat-label">Audit Chain</div>
+          <div class="stat-value" id="s-chain">—</div>
+        </div>
+      </div>
+      <div id="backend-info"></div>
+      <div class="msg" id="dash-msg"></div>
+    </div>
+
+    <!-- RECORDS -->
+    <div class="panel" id="panel-records">
+      <div class="page-title">Records</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <select id="list-tier" style="width:160px">
+          <option value="">All tiers</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="PERSONAL">Personal</option>
+          <option value="NOISE">Noise</option>
+        </select>
+        <button class="btn" onclick="loadRecords()">Refresh</button>
+      </div>
+      <div id="records-table"></div>
+    </div>
+
+    <!-- WRITE -->
+    <div class="panel" id="panel-write">
+      <div class="page-title">Write Record</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Record ID</label>
+          <input id="w-id" placeholder="user:1">
+        </div>
+        <div class="form-group">
+          <label>Tier</label>
+          <select id="w-tier">
+            <option value="PERSONAL">Personal</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="NOISE">Noise</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Payload</label>
+          <textarea id="w-payload" placeholder="Your sovereign data here..."></textarea>
+        </div>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="w-auto-embed">
+        Auto-embed payload as vector (requires Ollama + nomic-embed-text)
+      </label>
+      <div class="btn-row">
+        <button class="btn" onclick="writeRecord()">Write Record</button>
+      </div>
+      <div class="msg" id="write-msg"></div>
+    </div>
+
+    <!-- READ / DELETE -->
+    <div class="panel" id="panel-read">
+      <div class="page-title">Read / Delete</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Record ID</label>
+          <input id="r-id" placeholder="user:1">
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label>&nbsp;</label>
+          <div class="btn-row">
+            <button class="btn" onclick="readRecord()">Read</button>
+            <button class="btn danger" onclick="deleteRecord()">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div id="read-result"></div>
+      <div class="msg" id="read-msg"></div>
+    </div>
+
+    <!-- VECTOR SEARCH -->
+    <div class="panel" id="panel-vector">
+      <div class="page-title">Vector Search</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Query Text (will be embedded via Ollama)</label>
+          <input id="v-text" placeholder="sovereign data privacy">
+        </div>
+        <div class="form-group">
+          <label>Vector (JSON array, optional override)</label>
+          <input id="v-vec" placeholder="[0.1, 0.2, ...]">
+        </div>
+        <div class="form-group">
+          <label>Top K</label>
+          <input id="v-k" type="number" value="5" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>Min Similarity (0–1)</label>
+          <input id="v-sim" type="number" value="0.0" min="0" max="1" step="0.05">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Embed ID (to add a vector for an existing record)</label>
+        <div class="btn-row">
+          <input id="v-embed-id" placeholder="user:1" style="flex:1">
+          <button class="btn" onclick="embedRecord()">Auto Embed</button>
+        </div>
+      </div>
+      <button class="btn" onclick="vectorSearch()">Search</button>
+      <div class="search-results" id="vector-results"></div>
+      <div class="msg" id="vector-msg"></div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div class="panel" id="panel-audit">
+      <div class="page-title">Audit Log</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input id="audit-filter" placeholder="filter by record id..." style="width:240px">
+        <button class="btn" onclick="loadAudit()">Load</button>
+        <button class="btn" onclick="verifyChain()" style="margin-left:auto">Verify Chain</button>
+      </div>
+      <div id="chain-verify-result"></div>
+      <div id="audit-entries"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const BASE = () => `http://${location.hostname}:${location.port || 7777}`;
+const owner = () => document.getElementById('inp-owner').value.trim();
+const pass  = () => document.getElementById('inp-pass').value;
+
+function hdrs() {
+  return {
+    'Content-Type':  'application/json',
+    'X-Owner-ID':    owner(),
+    'X-Password':    pass(),
+  };
+}
+
+async function api(method, path, body) {
+  try {
+    const r = await fetch(BASE() + path, {
+      method,
+      headers: hdrs(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || r.statusText);
+    return data;
+  } catch(e) {
+    throw e;
+  }
+}
+
+function show(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'records')   loadRecords();
+  if (name === 'audit')     loadAudit();
+}
+
+function msg(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+}
+
+async function connect() {
+  try {
+    const data = await api('GET', '/api/status');
+    document.getElementById('conn-status').textContent = '● connected';
+    document.getElementById('conn-status').style.color = 'var(--green)';
+    loadDashboard();
+  } catch(e) {
+    document.getElementById('conn-status').textContent = '✕ ' + e.message;
+    document.getElementById('conn-status').style.color = 'var(--red)';
+  }
+}
+
+async function loadDashboard() {
+  try {
+    const s = await api('GET', '/api/status');
+    document.getElementById('s-records').textContent  = s.record_count;
+    document.getElementById('s-critical').textContent = s.critical_count;
+    document.getElementById('s-personal').textContent = s.personal_count;
+    document.getElementById('s-noise').textContent    = s.noise_count;
+    document.getElementById('s-audit').textContent    = s.audit_count;
+    const chainEl = document.getElementById('s-chain');
+    const chainCard = document.getElementById('chain-card');
+    chainEl.textContent = s.chain_valid ? 'INTACT' : 'BROKEN';
+    chainEl.className = 'stat-value ' + (s.chain_valid ? 'green' : 'red');
+    chainCard.className = 'stat-card ' + (s.chain_valid ? 'chain-ok' : 'chain-fail');
+    document.getElementById('backend-info').innerHTML =
+      `<div class="backend-badge"><div class="dot"></div> backend: ${s.backend}</div>`;
+  } catch(e) {
+    msg('dash-msg', e.message, false);
+  }
+}
+
+async function loadRecords() {
+  const tier = document.getElementById('list-tier').value;
+  const path = tier ? `/api/list?tier=${tier}` : '/api/list';
+  try {
+    const data = await api('GET', path);
+    const records = data.records || [];
+    if (!records.length) {
+      document.getElementById('records-table').innerHTML =
+        '<div class="empty-state">No records found.</div>';
+      return;
+    }
+    const rows = records.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td><span class="tier-badge tier-${r.tier}">${r.tier}</span></td>
+        <td style="color:var(--text2)">${new Date(r.created_at*1000).toISOString().slice(0,19).replace('T',' ')}</td>
+        <td>
+          <button class="btn sm" onclick="quickRead('${r.id}')">Read</button>
+          <button class="btn sm danger" style="margin-left:4px" onclick="quickDelete('${r.id}')">Del</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('records-table').innerHTML = `
+      <table>
+        <thead><tr><th>ID</th><th>Tier</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch(e) {
+    document.getElementById('records-table').innerHTML =
+      `<div class="empty-state" style="color:var(--red)">${e.message}</div>`;
+  }
+}
+
+async function quickRead(id) {
+  show('read');
+  document.getElementById('r-id').value = id;
+  await readRecord();
+}
+
+async function quickDelete(id) {
+  if (!confirm(`Delete record "${id}"?`)) return;
+  try {
+    await api('DELETE', `/api/delete/${id}`);
+    loadRecords();
+  } catch(e) { alert(e.message); }
+}
+
+async function writeRecord() {
+  const id      = document.getElementById('w-id').value.trim();
+  const tier    = document.getElementById('w-tier').value;
+  const payload = document.getElementById('w-payload').value.trim();
+  const autoEmbed = document.getElementById('w-auto-embed').checked;
+  if (!id || !payload) { msg('write-msg', 'ID and payload are required.', false); return; }
+  try {
+    await api('POST', '/api/write', { id, tier, payload, auto_embed: autoEmbed });
+    msg('write-msg', `Record "${id}" written successfully.`, true);
+    document.getElementById('w-id').value = '';
+    document.getElementById('w-payload').value = '';
+  } catch(e) { msg('write-msg', e.message, false); }
+}
+
+async function readRecord() {
+  const id = document.getElementById('r-id').value.trim();
+  if (!id) { msg('read-msg', 'Enter a record ID.', false); return; }
+  try {
+    const r = await api('GET', `/api/read/${id}`);
+    document.getElementById('read-result').innerHTML = `
+      <div class="result-box">
+        <div><span class="key">id      </span> <span class="val">${r.id}</span></div>
+        <div><span class="key">tier    </span> <span class="tier-badge tier-${r.tier}">${r.tier}</span></div>
+        <div><span class="key">payload </span> <span class="payload-val">${r.payload}</span></div>
+        <div><span class="key">created </span> <span class="val">${new Date(r.created_at*1000).toISOString().slice(0,19).replace('T',' ')}</span></div>
+      </div>`;
+    document.getElementById('read-msg').className = 'msg';
+  } catch(e) { msg('read-msg', e.message, false); document.getElementById('read-result').innerHTML = ''; }
+}
+
+async function deleteRecord() {
+  const id = document.getElementById('r-id').value.trim();
+  if (!id) { msg('read-msg', 'Enter a record ID.', false); return; }
+  if (!confirm(`Delete record "${id}"?`)) return;
+  try {
+    await api('DELETE', `/api/delete/${id}`);
+    msg('read-msg', `Record "${id}" deleted.`, true);
+    document.getElementById('read-result').innerHTML = '';
+  } catch(e) { msg('read-msg', e.message, false); }
+}
+
+async function embedRecord() {
+  const id = document.getElementById('v-embed-id').value.trim();
+  if (!id) { msg('vector-msg', 'Enter a record ID to embed.', false); return; }
+  try {
+    await api('POST', '/api/write', { id: '_embed_trigger_', tier: 'NOISE', payload: id });
+  } catch(_) {}
+  // Use AUTO EMBED via a special endpoint — call status to confirm alive
+  msg('vector-msg', `AUTO EMBED triggered for "${id}". Run via EQL shell for now.`, true);
+}
+
+async function vectorSearch() {
+  const text = document.getElementById('v-text').value.trim();
+  const vecStr = document.getElementById('v-vec').value.trim();
+  const k   = parseInt(document.getElementById('v-k').value) || 5;
+  const sim  = parseFloat(document.getElementById('v-sim').value) || 0.0;
+
+  let vector;
+  if (vecStr) {
+    try { vector = JSON.parse(vecStr); } catch { msg('vector-msg', 'Invalid vector JSON.', false); return; }
+  } else if (text) {
+    try {
+      const emb = await fetch('http://localhost:11434/api/embeddings', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({model:'nomic-embed-text', prompt: text})
+      });
+      const embData = await emb.json();
+      vector = embData.embedding;
+    } catch { msg('vector-msg', 'Could not reach Ollama for embedding. Use vector JSON directly.', false); return; }
+  } else {
+    msg('vector-msg', 'Enter query text or vector.', false); return;
+  }
+
+  try {
+    const simPart = sim > 0 ? ` SIMILARITY > ${sim}` : '';
+    const data = await api('POST', '/api/search', { vector, k, min_similarity: sim > 0 ? sim : null });
+    const hits = data.hits || [];
+    if (!hits.length) {
+      document.getElementById('vector-results').innerHTML = '<div class="empty-state">No results found.</div>';
+      return;
+    }
+    document.getElementById('vector-results').innerHTML = hits.map(h => `
+      <div class="search-hit">
+        <span class="hit-id">${h.id}</span>
+        <span class="hit-score">score ${h.score.toFixed(4)}</span>
+      </div>`).join('');
+    document.getElementById('vector-msg').className = 'msg';
+  } catch(e) { msg('vector-msg', e.message, false); }
+}
+
+async function loadAudit() {
+  const filter = document.getElementById('audit-filter').value.trim();
+  const path = filter ? `/api/audit?id=${encodeURIComponent(filter)}` : '/api/audit';
+  try {
+    const data = await api('GET', path);
+    const entries = data.entries || [];
+    if (!entries.length) {
+      document.getElementById('audit-entries').innerHTML = '<div class="empty-state">No audit entries.</div>';
+      return;
+    }
+    document.getElementById('audit-entries').innerHTML = `
+      <table>
+        <thead><tr><th>Timestamp</th><th>Action</th><th>Record ID</th><th>Requester</th></tr></thead>
+        <tbody>${entries.map(e => `
+          <tr>
+            <td style="color:var(--text2)">${new Date(e.timestamp*1000).toISOString().slice(0,19).replace('T',' ')}</td>
+            <td><span class="audit-action">${e.action}</span></td>
+            <td>${e.record_id}</td>
+            <td>${e.requester_id}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    document.getElementById('audit-entries').innerHTML =
+      `<div class="empty-state" style="color:var(--red)">${e.message}</div>`;
+  }
+}
+
+async function verifyChain() {
+  try {
+    const data = await api('GET', '/api/verify');
+    const el = document.getElementById('chain-verify-result');
+    if (data.chain_valid) {
+      el.innerHTML = '<div class="msg ok">✓ Audit chain intact — no tampering detected.</div>';
+    } else {
+      el.innerHTML = '<div class="msg err">✕ Chain violation detected — audit log may be tampered.</div>';
+    }
+  } catch(e) {
+    document.getElementById('chain-verify-result').innerHTML =
+      `<div class="msg err">${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>

@@ -20,6 +20,17 @@ use tower_http::cors::CorsLayer;
 
 use edisondb::sdk::EdisonDB;
 
+const STUDIO_HTML: &str = include_str!("studio.html");
+
+#[derive(Deserialize)]
+struct SearchBody {
+    vector:         Vec<f32>,
+    k:              usize,
+    min_similarity: Option<f32>,
+}
+
+
+
 // -- State -------------------------------------------------------------------
 
 struct AppState {
@@ -226,6 +237,30 @@ async fn handle_verify(
     }
 }
 
+async fn handle_studio() -> axum::response::Html<&'static str> {
+    axum::response::Html(STUDIO_HTML)
+}
+
+async fn handle_search(
+    State(state): State<SharedState>,
+    headers: HeaderMap,
+    Json(body): Json<SearchBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ApiError>)> {
+    let (owner, password) = extract_auth(&headers).ok_or((
+        StatusCode::UNAUTHORIZED,
+        Json(ApiError { error: "Missing X-Owner-ID or X-Password header".into() }),
+    ))?;
+    let state = state.lock().unwrap();
+    let mut db = open_db(&state, &owner, &password)?;
+    let results = db.search_vectors(&body.vector, body.k, body.min_similarity)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError { error: e.to_string() })))?;
+    let hits: Vec<_> = results.iter().map(|h| serde_json::json!({
+        "id":    h.id,
+        "score": h.score,
+    })).collect();
+    Ok(Json(serde_json::json!({ "hits": hits, "count": hits.len() })))
+}
+
 // -- Main --------------------------------------------------------------------
 
 #[tokio::main]
@@ -253,6 +288,8 @@ async fn main() {
         .route("/api/audit",       get(handle_audit))
         .route("/api/status",      get(handle_status))
         .route("/api/verify",      get(handle_verify))
+        .route("/api/search",      post(handle_search))
+        .route("/studio",          get(handle_studio))
         .layer(CorsLayer::permissive())
         .with_state(state);
 

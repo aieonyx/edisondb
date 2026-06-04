@@ -185,4 +185,23 @@ impl EdisonDB {
     pub fn backend(&self) -> &str {
         self.executor.backend_name()
     }
+
+    /// Search for similar vectors by query vector.
+    pub fn search_vectors(
+        &mut self,
+        query: &[f32],
+        k: usize,
+        min_similarity: Option<f32>,
+    ) -> Result<Vec<crate::executor::VectorHit>, EdisonError> {
+        use crate::eql::Statement;
+        let stmt = Statement::Search {
+            query: query.to_vec(),
+            k,
+            min_similarity,
+        };
+        match self.executor.execute(stmt)? {
+            crate::executor::EqlResult::Found(hits) => Ok(hits),
+            _ => Ok(vec![]),
+        }
+    }
 }
