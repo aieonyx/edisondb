@@ -66,7 +66,7 @@ All Phase 2 deliverables are implemented, tested, and live on GitHub.
 
 ### EdisonDB Studio
 
-![EdisonDB Studio Dashboard](assets/studio-screenshot.png)
+![EdisonDB Studio Dashboard](assets/EdisonDB_BackEnd.png)
 
 *Sovereign Database Control Plane — connect, browse, write, search, and verify your data locally.*
 
