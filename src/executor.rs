@@ -108,13 +108,14 @@ impl EqlExecutor {
 
     pub fn execute(&mut self, stmt: Statement) -> Result<EqlResult, EdisonError> {
         match stmt {
-            Statement::Write  { id, tier, payload } => self.exec_write(id, tier, payload),
+            Statement::Write  { id, tier, payload, auto_embed } => self.exec_write(id, tier, payload, auto_embed),
             Statement::Read   { id }                => self.exec_read(id),
             Statement::List   { tier }              => self.exec_list(tier),
             Statement::Delete { id }                => self.exec_delete(id),
             Statement::Audit  { id }                => self.exec_audit(id),
             Statement::Embed  { id, embedding }        => self.exec_embed(id, embedding),
             Statement::Search { query, k, min_similarity } => self.exec_search(query, k, min_similarity),
+            Statement::AutoEmbed { id }                       => self.exec_auto_embed(id),
         }
     }
 
@@ -123,6 +124,7 @@ impl EqlExecutor {
         id: String,
         tier: Tier,
         payload: String,
+        auto_embed: bool,
     ) -> Result<EqlResult, EdisonError> {
         let data_tier = to_data_tier(&tier);
         let mut salt  = [0u8; 32];
@@ -133,6 +135,12 @@ impl EqlExecutor {
         let record    = Record::new(&id, data_tier, &self.owner_id, encrypted, salt)?;
         self.router.write(record)?;
         self.router.save()?;
+        if auto_embed {
+            let client = crate::embedding::EmbeddingClient::default_ollama();
+            if let Ok(embedding) = client.embed(&payload) {
+                self.vector_index.insert(id.clone(), embedding)?;
+            }
+        }
         Ok(EqlResult::Written { id, tier })
     }
 
@@ -190,6 +198,23 @@ impl EqlExecutor {
             ))
             .collect();
         Ok(EqlResult::Audited(lines))
+    }
+
+    fn exec_auto_embed(&mut self, id: String) -> Result<EqlResult, EdisonError> {
+        // Find the record payload to embed
+        let record = self.router.read(&id, &self.owner_id)?;
+        let payload_bytes = record.payload.clone();
+        let salt = record.salt;
+        let tier = record.tier.clone();
+        // Decrypt to get plaintext
+        let key = crate::derive_key(&self.password, &salt)?;
+        let decrypted = crate::decrypt_payload(&payload_bytes, &key, &id, &tier)?;
+        let text = String::from_utf8(decrypted).map_err(|_| EdisonError::DecryptionFailed)?;
+        // Generate embedding
+        let client = crate::embedding::EmbeddingClient::default_ollama();
+        let embedding = client.embed(&text)?;
+        self.vector_index.insert(id.clone(), embedding)?;
+        Ok(EqlResult::Embedded { id })
     }
 
     fn exec_embed(

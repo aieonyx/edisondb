@@ -34,7 +34,8 @@ pub fn parse(input: &str) -> Result<Statement, ParseError> {
         Rule::delete_stmt => parse_delete(pair),
         Rule::audit_stmt  => parse_audit(pair),
         Rule::embed_stmt  => parse_embed(pair),
-        Rule::search_stmt => parse_search(pair),
+        Rule::search_stmt     => parse_search(pair),
+        Rule::auto_embed_stmt => parse_auto_embed(pair),
         r => Err(ParseError::Internal(format!("unexpected rule: {r:?}"))),
     }
 }
@@ -50,10 +51,11 @@ fn parse_tier(s: &str) -> Result<Tier, ParseError> {
 
 fn parse_write(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
     let mut inner = pair.into_inner();
-    let id      = inner.next().ok_or_else(|| ParseError::Internal("missing id".into()))?.as_str().to_string();
-    let tier    = parse_tier(inner.next().ok_or_else(|| ParseError::Internal("missing tier".into()))?.as_str())?;
-    let payload = inner.next().ok_or_else(|| ParseError::Internal("missing payload".into()))?.as_str().to_string();
-    Ok(Statement::Write { id, tier, payload })
+    let id         = inner.next().ok_or_else(|| ParseError::Internal("missing id".into()))?.as_str().to_string();
+    let tier       = parse_tier(inner.next().ok_or_else(|| ParseError::Internal("missing tier".into()))?.as_str())?;
+    let payload    = inner.next().ok_or_else(|| ParseError::Internal("missing payload".into()))?.as_str().to_string();
+    let auto_embed = inner.next().is_some();
+    Ok(Statement::Write { id, tier, payload, auto_embed })
 }
 
 fn parse_read(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
@@ -76,6 +78,12 @@ fn parse_delete(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseErr
 fn parse_audit(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
     let id = pair.into_inner().next().map(|p| p.as_str().to_string());
     Ok(Statement::Audit { id })
+}
+
+fn parse_auto_embed(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
+    let id = pair.into_inner().next()
+        .ok_or_else(|| ParseError::Internal("missing id".into()))?.as_str().to_string();
+    Ok(Statement::AutoEmbed { id })
 }
 
 fn parse_embed(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
@@ -121,7 +129,7 @@ mod tests {
     fn parse_write_critical() {
         assert_eq!(
             parse("WRITE rec-1 TIER CRITICAL my secret").unwrap(),
-            Statement::Write { id: "rec-1".into(), tier: Tier::Critical, payload: "my secret".into() }
+            Statement::Write { id: "rec-1".into(), tier: Tier::Critical, payload: "my secret".into(), auto_embed: false }
         );
     }
 
@@ -129,7 +137,7 @@ mod tests {
     fn parse_write_personal() {
         assert_eq!(
             parse("WRITE note TIER PERSONAL birthday reminder").unwrap(),
-            Statement::Write { id: "note".into(), tier: Tier::Personal, payload: "birthday reminder".into() }
+            Statement::Write { id: "note".into(), tier: Tier::Personal, payload: "birthday reminder".into(), auto_embed: false }
         );
     }
 
@@ -137,7 +145,7 @@ mod tests {
     fn parse_write_noise() {
         assert_eq!(
             parse("WRITE log1 TIER NOISE server started").unwrap(),
-            Statement::Write { id: "log1".into(), tier: Tier::Noise, payload: "server started".into() }
+            Statement::Write { id: "log1".into(), tier: Tier::Noise, payload: "server started".into(), auto_embed: false }
         );
     }
 

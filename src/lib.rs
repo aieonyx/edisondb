@@ -12,6 +12,7 @@ pub mod executor;
 pub mod backends;
 pub mod sdk;
 pub mod vector;
+pub mod embedding;
 
 const RECORDS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("records");
 const AUDIT_TABLE: TableDefinition<&str, &str> = TableDefinition::new("audit");
@@ -95,6 +96,8 @@ pub enum EdisonError {
     AlreadyExists,
     #[error("Audit chain integrity violation")]
     AuditChainBroken,
+    #[error("Embedding service unavailable — is Ollama running?")]
+    EmbeddingUnavailable,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
