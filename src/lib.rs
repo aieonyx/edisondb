@@ -11,6 +11,7 @@ pub mod eql;
 pub mod executor;
 pub mod backends;
 pub mod sdk;
+pub mod vector;
 
 const RECORDS_TABLE: TableDefinition<&str, &str> = TableDefinition::new("records");
 const AUDIT_TABLE: TableDefinition<&str, &str> = TableDefinition::new("audit");

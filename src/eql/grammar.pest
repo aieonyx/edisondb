@@ -11,5 +11,11 @@ list_stmt   = { ^"LIST"   ~ (^"TIER" ~ tier)? }
 delete_stmt = { ^"DELETE" ~ id }
 audit_stmt  = { ^"AUDIT"  ~ id? }
 
-statement = _{ write_stmt | read_stmt | list_stmt | delete_stmt | audit_stmt }
+embed_stmt  = { ^"EMBED"  ~ id ~ vector }
+search_stmt = { ^"SEARCH" ~ vector ~ ^"LIMIT" ~ number ~ (^"SIMILARITY" ~ ^">" ~ float)? }
+vector      = @{ "[" ~ float ~ ("," ~ WHITESPACE* ~ float)* ~ "]" }
+number      = @{ ASCII_DIGIT+ }
+float       = @{ "-"? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+statement = _{ write_stmt | read_stmt | list_stmt | delete_stmt | audit_stmt | embed_stmt | search_stmt }
 program   =  { SOI ~ WHITESPACE* ~ statement ~ WHITESPACE* ~ EOI }

@@ -33,6 +33,8 @@ pub fn parse(input: &str) -> Result<Statement, ParseError> {
         Rule::list_stmt   => parse_list(pair),
         Rule::delete_stmt => parse_delete(pair),
         Rule::audit_stmt  => parse_audit(pair),
+        Rule::embed_stmt  => parse_embed(pair),
+        Rule::search_stmt => parse_search(pair),
         r => Err(ParseError::Internal(format!("unexpected rule: {r:?}"))),
     }
 }
@@ -74,6 +76,41 @@ fn parse_delete(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseErr
 fn parse_audit(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
     let id = pair.into_inner().next().map(|p| p.as_str().to_string());
     Ok(Statement::Audit { id })
+}
+
+fn parse_embed(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
+    let mut inner = pair.into_inner();
+    let id = inner.next()
+        .ok_or_else(|| ParseError::Internal("missing id".into()))?.as_str().to_string();
+    let vector_str = inner.next()
+        .ok_or_else(|| ParseError::Internal("missing vector".into()))?.as_str();
+    let embedding = parse_float_vec(vector_str)?;
+    Ok(Statement::Embed { id, embedding })
+}
+
+fn parse_search(pair: pest::iterators::Pair<Rule>) -> Result<Statement, ParseError> {
+    let mut inner = pair.into_inner();
+    let vector_str = inner.next()
+        .ok_or_else(|| ParseError::Internal("missing vector".into()))?.as_str();
+    let query = parse_float_vec(vector_str)?;
+    let k_str = inner.next()
+        .ok_or_else(|| ParseError::Internal("missing limit".into()))?.as_str();
+    let k = k_str.parse::<usize>()
+        .map_err(|_| ParseError::Internal("invalid limit".into()))?;
+    let min_similarity = inner.next()
+        .map(|p| p.as_str().parse::<f32>()
+            .map_err(|_| ParseError::Internal("invalid similarity".into())))
+        .transpose()?;
+    Ok(Statement::Search { query, k, min_similarity })
+}
+
+fn parse_float_vec(s: &str) -> Result<Vec<f32>, ParseError> {
+    let s = s.trim().trim_start_matches('[').trim_end_matches(']');
+    if s.is_empty() { return Ok(Vec::new()); }
+    s.split(',')
+        .map(|v| v.trim().parse::<f32>()
+            .map_err(|_| ParseError::Internal("invalid float in vector".into())))
+        .collect()
 }
 
 #[cfg(test)]

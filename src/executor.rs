@@ -14,13 +14,22 @@ fn to_data_tier(t: &Tier) -> DataTier {
 }
 
 // ── Result types ──────────────────────────────────────────────────────────────
+/// A single vector search result.
+#[derive(Debug, Clone)]
+pub struct VectorHit {
+    pub id: String,
+    pub score: f32,
+}
+
 #[derive(Debug)]
 pub enum EqlResult {
-    Written { id: String, tier: Tier },
-    Read    { id: String, tier: DataTier, payload: String },
-    Listed  (Vec<RecordInfo>),
-    Deleted { id: String },
-    Audited (Vec<String>),
+    Written  { id: String, tier: Tier },
+    Read     { id: String, tier: DataTier, payload: String },
+    Listed   (Vec<RecordInfo>),
+    Deleted  { id: String },
+    Audited  (Vec<String>),
+    Embedded { id: String },
+    Found    (Vec<VectorHit>),
 }
 
 #[derive(Debug)]
@@ -51,15 +60,26 @@ impl std::fmt::Display for EqlResult {
                 for l in lines { writeln!(f, "    {l}")?; }
                 Ok(())
             }
+            EqlResult::Embedded { id } =>
+                write!(f, "OK  EMBEDDED {id}"),
+            EqlResult::Found(hits) => {
+                writeln!(f, "OK  {} hit(s)", hits.len())?;
+                for h in hits {
+                    writeln!(f, "    {} score={:.4}", h.id, h.score)?;
+                }
+                Ok(())
+            }
         }
     }
 }
 
 // ── Executor ──────────────────────────────────────────────────────────────────
 pub struct EqlExecutor {
-    router:   Router,
-    owner_id: String,
-    password: String,
+    router:       Router,
+    owner_id:     String,
+    password:     String,
+    vector_index: crate::vector::VectorIndex,
+    db_path:      String,
 }
 
 impl EqlExecutor {
@@ -70,10 +90,19 @@ impl EqlExecutor {
             "fjall" => Router::new(Box::new(FjallBackend::open(path)?)),
             _       => Router::new(Box::new(RedbBackend::open(path)?)),
         };
+        let vector_path = format!("{}.vectors", path);
+        let vector_index = if std::path::Path::new(&vector_path).exists() {
+            crate::vector::VectorIndex::load(&vector_path)
+                .unwrap_or_else(|_| crate::vector::VectorIndex::new())
+        } else {
+            crate::vector::VectorIndex::new()
+        };
         Ok(Self {
             router,
             owner_id: owner_id.to_string(),
             password: password.to_string(),
+            vector_index,
+            db_path: path.to_string(),
         })
     }
 
@@ -84,6 +113,8 @@ impl EqlExecutor {
             Statement::List   { tier }              => self.exec_list(tier),
             Statement::Delete { id }                => self.exec_delete(id),
             Statement::Audit  { id }                => self.exec_audit(id),
+            Statement::Embed  { id, embedding }        => self.exec_embed(id, embedding),
+            Statement::Search { query, k, min_similarity } => self.exec_search(query, k, min_similarity),
         }
     }
 
@@ -160,6 +191,30 @@ impl EqlExecutor {
             .collect();
         Ok(EqlResult::Audited(lines))
     }
+
+    fn exec_embed(
+        &mut self,
+        id: String,
+        embedding: Vec<f32>,
+    ) -> Result<EqlResult, EdisonError> {
+        self.vector_index.insert(id.clone(), embedding)?;
+        Ok(EqlResult::Embedded { id })
+    }
+
+    fn exec_search(
+        &mut self,
+        query: Vec<f32>,
+        k: usize,
+        min_similarity: Option<f32>,
+    ) -> Result<EqlResult, EdisonError> {
+        let results = self.vector_index.search(&query, k);
+        let hits = results
+            .into_iter()
+            .filter(|r| min_similarity.is_none_or(|min| r.score >= min))
+            .map(|r| VectorHit { id: r.id, score: r.score })
+            .collect();
+        Ok(EqlResult::Found(hits))
+    }
 }
 
 // ── Stats & verification ─────────────────────────────────────────────────────────
@@ -209,7 +264,9 @@ impl EqlExecutor {
     }
 
     pub fn save(&self) -> Result<(), crate::EdisonError> {
-        self.router.save()
+        self.router.save()?;
+        self.vector_index.save(&format!("{}.vectors", self.db_path))?;
+        Ok(())
     }
 }
 
@@ -329,5 +386,42 @@ mod tests {
     fn eql_read_nonexistent_fails() {
         let mut ex = fresh("/tmp/eql_ex_10.redb");
         assert!(ex.execute(parse("READ ghost").unwrap()).is_err());
+    }
+
+    #[test]
+    fn vector_eql_embed_and_search() {
+        let mut ex = fresh("/tmp/eql_vec_1.redb");
+        ex.execute(parse("EMBED rec:1 [1.0, 0.0, 0.0]").unwrap()).unwrap();
+        ex.execute(parse("EMBED rec:2 [0.0, 1.0, 0.0]").unwrap()).unwrap();
+        match ex.execute(parse("SEARCH [1.0, 0.0, 0.0] LIMIT 1").unwrap()).unwrap() {
+            EqlResult::Found(hits) => {
+                assert_eq!(hits.len(), 1);
+                assert_eq!(hits[0].id, "rec:1");
+            }
+            _ => panic!("expected Found"),
+        }
+    }
+
+    #[test]
+    fn vector_similarity_threshold() {
+        let mut ex = fresh("/tmp/eql_vec_2.redb");
+        ex.execute(parse("EMBED a [1.0, 0.0]").unwrap()).unwrap();
+        ex.execute(parse("EMBED b [0.0, 1.0]").unwrap()).unwrap();
+        match ex.execute(parse("SEARCH [1.0, 0.0] LIMIT 2 SIMILARITY > 0.5").unwrap()).unwrap() {
+            EqlResult::Found(hits) => {
+                assert_eq!(hits.len(), 1);
+                assert_eq!(hits[0].id, "a");
+            }
+            _ => panic!("expected Found"),
+        }
+    }
+
+    #[test]
+    fn vector_empty_returns_empty() {
+        let mut ex = fresh("/tmp/eql_vec_3.redb");
+        match ex.execute(parse("SEARCH [1.0, 0.0] LIMIT 5").unwrap()).unwrap() {
+            EqlResult::Found(hits) => assert!(hits.is_empty()),
+            _ => panic!("expected Found"),
+        }
     }
 }
