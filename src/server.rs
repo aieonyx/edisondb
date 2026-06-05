@@ -20,6 +20,8 @@ use tower_http::cors::CorsLayer;
 
 use edisondb::sdk::EdisonDB;
 
+mod grpc;
+
 const STUDIO_HTML: &str = include_str!("studio.html");
 
 #[derive(Deserialize)]
@@ -301,6 +303,12 @@ async fn main() {
     println!("  Database : {db_path}");
     println!("  Listening: http://{addr}");
     println!("  Press Ctrl-C to stop.\n");
+
+    // Spawn gRPC server on port 50051 alongside REST
+    let grpc_db_path = db_path.clone();
+    tokio::spawn(async move {
+        grpc::serve_grpc(grpc_db_path, 50051).await;
+    });
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
