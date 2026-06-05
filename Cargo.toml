@@ -33,9 +33,21 @@ tower-http = { version = "0.6.11", features = ["cors", "trace"] }
 fjall = "3.1.4"
 instant-distance = "0.6.1"
 reqwest = { version = "0.13.4", features = ["blocking", "json"] }
+# gRPC transport — tonic 0.14 + prost 0.14
+tonic  = "0.14"
+prost  = "0.14"
+# Secret zeroization (already present from Phase 1 — confirm version matches)
+zeroize = "1"
+
+[build-dependencies]
+tonic-build = "0.14"
+protoc-bin-vendored = "3.2"   # zero system protoc dependency — S4+i sovereignty
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+tonic = "0.14"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"      # needed for join_all in concurrent test
 
 [[bin]]
 name = "edisondb-server"
