@@ -89,6 +89,36 @@ The following features are **planned for Phase 3 (Month 19–30)**:
 > **Download the binary** — [EdisonDB v0.5.0-beta Release](https://github.com/aieonyx/edisondb/releases/tag/v0.5.0-beta)  
 > Single binary, no dependencies required. Run `edisondb-server --db myapp.redb --port 7777` then open `http://localhost:7777/studio`.
 
+
+---
+
+## Tested in Production — Onyxia v1.0.0 Exhibit
+
+EdisonDB has been validated as the live data layer for **[Onyxia](https://github.com/aieonyx/onyxia)** — the AIEONYX Sovereign Browser — shipped as v1.0.0 on June 17, 2026.
+
+This is not a demo integration. EdisonDB runs as a local server (port 7777) powering real browser features in a production binary ( + ):
+
+| Onyxia Feature | EdisonDB Role |
+|---|---|
+| **Session persistence** | Tab URLs and navigation state saved/restored across launches |
+| **Digital Legacy** | Testament configuration and heartbeat stored in PERSONAL tier |
+| **Sovereign Vault** | Credential storage in CRITICAL tier |
+| **Aegis Threat Intel** | Session threat events logged and queried |
+
+### What the exhibit proved
+
+- EdisonDB starts reliably as a sidecar to a Tauri v2 Rust application
+- REST API (port 7777) handles concurrent browser reads/writes with zero failures
+- Graceful degradation confirmed — Onyxia detects EdisonDB absence and disables dependent features cleanly without crashing
+- CRITICAL / PERSONAL / NOISE tier model maps directly to real browser data categories
+- Phase 3 WAL + MVCC (v0.6.0-p3m1) and gRPC server (P3-M2) stable under browser workload
+
+### Exhibit status
+
+> **EdisonDB v0.6.0-p3m2** — integrated and battle-tested in Onyxia v1.0.0  
+> NLNet NGI Zero grant submitted May 15, 2026 (€50,000, six milestones)  
+> arXiv submission: cs.DB — in preparation
+
 ---
 
 
