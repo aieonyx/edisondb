@@ -117,7 +117,7 @@ This is not a demo integration. EdisonDB runs as a local server (port 7777) powe
 
 > **EdisonDB v0.6.0-p3m2** — integrated and battle-tested in Onyxia v1.0.0  
 > NLNet NGI Zero funding application submitted May 15, 2026  
-> arXiv submission: cs.DB — in preparation
+> arXiv submission: cs.DB — in preparation.
 
 ---
 
