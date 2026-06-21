@@ -649,3 +649,4 @@ mod tests {
         assert_eq!(store.verify_audit_chain(), Err(EdisonError::AuditChainBroken));
     }
 }
+pub mod sovereign_embed;
