@@ -6,3 +6,5 @@ edisondb-py/**/__pycache__/
 edisondb-py/**/*.pyc
 edisondb-ts/node_modules/
 edisondb-ts/dist/
+*.redb
+*.redb.vectors
