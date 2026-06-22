@@ -2,22 +2,13 @@
   <img src="assets/banner.png" alt="EdisonDB Banner">
 </p>
 
-## [PERSONAL NOTE] Why I built this?
-
-"Light for your data."
-
-​Hello everyone. I'm Edison, a Filipino currently working as an (OFW) here in the Czech Republic.
-
-​I’m building EdisonDB mainly because I just don't like perhaps tired of the way modern databases handle our data. With the new EU AI Act and the whole industry finally shifting toward sovereign data laws, the timing just made sense. I figured it was time to heed the call and build a database that actually respects our privacy—one that is encrypted by default (not just when you remember to configure it) and lets you use AI without sending all your data to some external cloud API.
-​Right now, it's just me coding this after my day job. The code is still a work in progress, but the philosophy is set in stone. I'm building this in public because I have nothing to hide, and I just really want to make something useful for the community.
-
-
 <div align="center">
 
-<img src="https://img.shields.io/badge/EdisonDB-v0.1.0--alpha.2-gold?style=for-the-badge" alt="version"/>
+![CI](https://github.com/aieonyx/edisondb/actions/workflows/ci.yml/badge.svg)
+<img src="https://img.shields.io/badge/EdisonDB-v0.6.0--p3m9-gold?style=for-the-badge" alt="version"/>
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="license"/>
 <img src="https://img.shields.io/badge/Language-Rust-orange?style=for-the-badge&logo=rust" alt="rust"/>
-<img src="https://img.shields.io/badge/Status-Active%20Development-green?style=for-the-badge" alt="status"/>
+<img src="https://img.shields.io/badge/Phase%203-Complete-brightgreen?style=for-the-badge" alt="phase 3"/>
 <img src="https://img.shields.io/badge/Telemetry-Zero-red?style=for-the-badge" alt="zero telemetry"/>
 
 <br/><br/>
@@ -26,7 +17,7 @@
 
 ### *"Light for your data."*
 
-**The sovereign, AI-native, multi-model database engine.**  
+**The sovereign, AI-native, multi-model database engine.**
 Built in Rust. Encrypted by default. Yours forever.
 
 <br/>
@@ -35,34 +26,61 @@ Built in Rust. Encrypted by default. Yours forever.
 
 <br/>
 
-[Documentation](#documentation) · [Quick Start](#quick-start) · [Community Promise](#community-promise) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[Quick Start](#quick-start) · [What's New](#whats-new--phase-3-complete) · [Architecture](#architecture) · [Community Promise](#community-promise) · [Roadmap](#roadmap)
 
 </div>
 
 ---
-## Current Status — Phase 2 Beta Complete ✅
 
-**EdisonDB v0.5.0-beta** — Phase 2 Beta is complete and shipped.  
-All Phase 2 deliverables are implemented, tested, and live on GitHub.
+## What's New — Phase 3 Complete ✅
+
+**EdisonDB v0.6.0-p3m9** — Phase 3 is complete as of June 2026.
+
+Phase 3 delivered a production-hardened sovereign data stack on top of the Phase 2 Beta engine. All deliverables are implemented, tested, and live on GitHub.
+
+| Phase 3 Milestone | Deliverable | Tests | Status |
+|---|---|---|---|
+| **P3-M1** | WAL + MVCC (fjall TxKeyspace, crash-safe) | 58 | ✅ v0.6.0-p3m1 |
+| **P3-M2** | gRPC server (tonic, high-performance binary protocol) | — | ✅ |
+| **P3-M4** | Sovereign offline embeddings (zero Ollama, zero network) | 20 | ✅ |
+| **P3-M5** | ARPi protocol integration (78-byte provenance header) | 20 | ✅ |
+| **P3-M6** | Access control + policy engine (RBAC, Inverted Admin Model) | 20 | ✅ |
+| **P3-M7** | Migration toolkit (.edm format, export/import/transform) | 20 | ✅ |
+| **P3-M8** | Formal verification hooks (invariants, Kani harnesses) | 20 | ✅ |
+| **P3-M9** | Compliance tooling (GDPR Art.17, retention, audit report) | 20 | ✅ |
+| **Total** | | **178+** | **Phase 3 complete** |
+
+> **P3-M3 (Raft distributed consensus)** is deferred to Phase 4 — it is a distributed systems project deserving its own dedicated sprint.
+
+---
+
+## Current Status
+
+**EdisonDB v0.6.0-p3m9** — production-ready sovereign database.
+All Phase 2 + Phase 3 deliverables implemented, tested, and live.
 
 ### What Works Today
 
 | Feature | Status |
 |---|---|
-| **EQL Query Language** — WRITE / READ / LIST / DELETE / AUDIT / EMBED / SEARCH | ✅ Shipped |
-| **AES-256-GCM Encryption** — all payloads encrypted at rest, always on | ✅ Shipped |
-| **AAD Encryption** — ciphertext bound to record ID + tier, transplant attacks blocked | ✅ Shipped |
-| **Data Tier Model** — CRITICAL / PERSONAL / NOISE with owner-only access control | ✅ Shipped |
-| **Hash-Chained Audit Log** — tamper-evident, SHA-256 chain, verify command | ✅ Shipped |
-| **`edctl` CLI** — `init`, `shell`, `status`, `verify` subcommands | ✅ Shipped |
-| **REST Server** — Axum/Tokio, 8 endpoints + `/studio` dashboard | ✅ Shipped |
-| **fjall LSM-tree Backend** — tier-partitioned physical storage, dual-backend routing | ✅ Shipped |
-| **HNSW Vector Index** — `EMBED` / `SEARCH` EQL syntax, instant-distance | ✅ Shipped |
-| **Auto-embedding Pipeline** — `AUTO EMBED` syntax, local Ollama inference | ✅ Shipped |
-| **Python SDK** — `pip install edisondb`, full async-ready client | ✅ Shipped |
-| **TypeScript SDK** — `npm install edisondb`, full typed client | ✅ Shipped |
-| **EdisonDB Studio** — sovereign dark dashboard, all panels, live data | ✅ Shipped |
-| **58 Tests** — unit, integration, doctests — 0 failures, dual backend | ✅ Shipped |
+| **EQL Query Language** — WRITE / READ / LIST / DELETE / AUDIT / EMBED / SEARCH | ✅ |
+| **AES-256-GCM Encryption** — all payloads encrypted at rest, always on | ✅ |
+| **Data Tier Model** — CRITICAL / PERSONAL / NOISE with Inverted Admin Model | ✅ |
+| **WAL + MVCC** — crash-safe writes, fjall TxKeyspace backend | ✅ |
+| **gRPC Server** — tonic, high-performance binary protocol | ✅ |
+| **RBAC Policy Engine** — 5 roles, delegation with expiry, deny-override | ✅ |
+| **Hash-Chained Audit Log** — tamper-evident SHA-256 chain | ✅ |
+| **ARPi Provenance Header** — 78-byte wire format, data origin verification | ✅ |
+| **Sovereign Offline Embeddings** — 128-dim hash projection, zero network | ✅ |
+| **Ollama Auto-embedding** — local Ollama inference fallback | ✅ |
+| **HNSW Vector Index** — EMBED / SEARCH EQL syntax, instant-distance | ✅ |
+| **Migration Toolkit** — .edm format, export/import/transform/verify | ✅ |
+| **Compliance Tooling** — GDPR Art.17 erasure, retention policy, audit report | ✅ |
+| **Formal Verification Hooks** — invariant checkers, Kani harnesses | ✅ |
+| **REST Server** — Axum/Tokio, 8 endpoints + /studio dashboard | ✅ |
+| **Python SDK** — `pip install edisondb`, full async-ready client | ✅ |
+| **TypeScript SDK** — `npm install edisondb`, full typed client | ✅ |
+| **EdisonDB Studio** — sovereign dark dashboard, all panels, live data | ✅ |
 
 ### EdisonDB Studio
 
@@ -70,63 +88,39 @@ All Phase 2 deliverables are implemented, tested, and live on GitHub.
 
 *Sovereign Database Control Plane — connect, browse, write, search, and verify your data locally.*
 
-### What Is Coming — Phase 3 Stable
-
-The following features are **planned for Phase 3 (Month 19–30)**:
-
-| Feature | Description |
-|---|---|
-| **Full production storage engine** | Optimized LSM-tree with compaction, WAL, MVCC |
-| **Distributed cluster (Raft)** | Multi-node consensus, geo-partitioning |
-| **gRPC server mode** | High-performance binary protocol alongside REST |
-| **ARPi protocol integration** | AXON Receptor Protocol Interface for BASTION nodes |
-| **candle native embeddings** | Fully offline auto-embedding, no Ollama required |
-| **Access Control & Policy Engine** | Fine-grained per-tier permission rules |
-| **Migration toolkit** | Import from PostgreSQL, SQLite, MongoDB |
-| **Compliance tooling** | GDPR, EU AI Act audit reports |
-| **AXON language integration** | Formal verification of storage operations via AXON `@ensures` |
-
-> **Download the binary** — [EdisonDB v0.5.0-beta Release](https://github.com/aieonyx/edisondb/releases/tag/v0.5.0-beta)  
-> Single binary, no dependencies required. Run `edisondb-server --db myapp.redb --port 7777` then open `http://localhost:7777/studio`.
-
-
 ---
 
-## Tested in Production — Onyxia v1.0.0 Exhibit
+## Tested in Production — Onyxia v1.0.0
 
 EdisonDB has been validated as the live data layer for **[Onyxia](https://github.com/aieonyx/onyxia)** — the AIEONYX Sovereign Browser — shipped as v1.0.0 on June 17, 2026.
 
-This is not a demo integration. EdisonDB runs as a local server (port 7777) powering real browser features in a production binary ( + ):
+| Onyxia Feature | EdisonDB Tier | EdisonDB Component |
+|---|---|---|
+| **Session persistence** | PERSONAL | P3-M1 WAL + MVCC |
+| **Digital Legacy** | PERSONAL | fjall backend |
+| **Sovereign Vault** | CRITICAL | P3-M6 policy engine |
+| **Aegis Threat Intel** | NOISE | audit log |
+| **Offline search** | — | P3-M4 sovereign embeddings |
+| **Data erasure** | all tiers | P3-M9 GDPR compliance |
 
-| Onyxia Feature | EdisonDB Role |
-|---|---|
-| **Session persistence** | Tab URLs and navigation state saved/restored across launches |
-| **Digital Legacy** | Testament configuration and heartbeat stored in PERSONAL tier |
-| **Sovereign Vault** | Credential storage in CRITICAL tier |
-| **Aegis Threat Intel** | Session threat events logged and queried |
-
-### What the exhibit proved
-
-- EdisonDB starts reliably as a sidecar to a Tauri v2 Rust application
-- REST API (port 7777) handles concurrent browser reads/writes with zero failures
-- Graceful degradation confirmed — Onyxia detects EdisonDB absence and disables dependent features cleanly without crashing
-- CRITICAL / PERSONAL / NOISE tier model maps directly to real browser data categories
-- Phase 3 WAL + MVCC (v0.6.0-p3m1) and gRPC server (P3-M2) stable under browser workload
-
-### Exhibit status
-
-> **EdisonDB v0.6.0-p3m2** — integrated and battle-tested in Onyxia v1.0.0  
-> NLNet NGI Zero funding application submitted May 15, 2026  
-> arXiv submission: cs.DB — in preparation.
+> **EdisonDB v0.6.0-p3m9** — integrated and battle-tested in Onyxia v1.0.0
+> NLNet NGI Zero funding application submitted May 15, 2026
 
 ---
 
+## Why I Built This
 
-## What is EdisonDB?
+*Hello everyone. I'm Edison, a Filipino currently working as an OFW here in the Czech Republic.*
 
-EdisonDB is a **sovereign, AI-native, multi-model database engine** — built from the ground up in Rust, designed for a world where your data belongs to you and intelligence belongs inside the engine, not in some external API.
+I built EdisonDB because I got tired of the way modern databases handle our data. With the EU AI Act and the whole industry finally shifting toward sovereign data laws, the timing made sense. I figured it was time to build a database that actually respects our privacy — one that is encrypted by default and lets you use AI without sending your data to some external cloud API.
 
-Unlike every major database that came before it:
+Right now it's just me coding this after my day job. The philosophy is set in stone. I'm building this in public because I have nothing to hide, and I want to make something useful for the community.
+
+---
+
+## What Is EdisonDB?
+
+EdisonDB is a **sovereign, AI-native, multi-model database engine** — built in Rust, designed for a world where your data belongs to you and intelligence belongs inside the engine, not in an external API.
 
 | Other databases | EdisonDB |
 |---|---|
@@ -136,80 +130,53 @@ Unlike every major database that came before it:
 | Change licenses when profit demands it | Apache 2.0 forever — legally irrevocable |
 | Call home to measure your usage | Zero telemetry. Zero exceptions. |
 
-EdisonDB is **not** trying to replace PostgreSQL for existing workloads. It is building what a database looks like when you start from scratch in 2026, with AI, security, and sovereignty as first principles — not afterthoughts.
-
 ---
 
-## The S4+i Philosophy
-
-Every decision in EdisonDB — from encryption algorithm to error message wording — is evaluated against the **S4+i framework**. This is not a marketing tagline. It is an architectural contract.
+## The AIEONYX S4+i Philosophy.
 
 ```
 🔒 S1 · SECURITY      Data is born encrypted. Access is born restricted. Trust is born zero.
 ⚡ S2 · SPEED         Rust-native. Sub-millisecond local. Fast at every scale.
 🏛️ S3 · SOVEREIGNTY   Apache 2.0 forever. Zero telemetry. Offline-first. No vendor. No lock-in.
-🌿 S4 · SIMPLICITY    Zero-config start. SQL-first. 15-minute promise. Errors that teach.
+🌿 S4 · SIMPLICITY    Zero-config start. EQL-first. 15-minute promise.
 🧠 +i · INTELLIGENCE  AI woven into the engine. Local inference only. Self-optimizing.
 ```
-
-**Why S4+i and not S5?**
-
-Intelligence is not a fifth pillar standing beside the others. It is the **multiplier** that runs through all four:
-
-```
-Security  × Intelligence  =  threats detected before they materialize
-Speed     × Intelligence  =  queries that get faster the longer you use them
-Sovereignty × Intelligence =  AI that knows everything about you and tells no one
-Simplicity  × Intelligence =  a database that teaches you how to use it, as you use it
-```
-
-*S4 is the foundation. +i is what makes it breathe.*
 
 ---
 
 ## Quick Start
 
-> ⚠️ EdisonDB is in active early development. Installation packages will be available with the 0.1 Alpha release. **Star this repo to be notified when it ships.**
-
-Once released, getting started will look like this:
-
 ```bash
-# Install (single binary, no dependencies)
-edctl init myapp
-edctl shell myapp
+# Clone and build
+git clone https://github.com/aieonyx/edisondb
+cd edisondb
+cargo build --release
+
+# Start the server
+./target/release/edisondb-server --db myapp.redb --port 7777
+
+# Open the studio dashboard
+open http://localhost:7777/studio
 ```
 
 ```sql
--- Standard SQL works on day one
-CREATE TABLE users (id i64 PRIMARY KEY, name text, age i32);
-INSERT INTO users VALUES (1, 'Edison', 32);
-SELECT * FROM users WHERE age > 25;
+-- EQL: sovereign query language, superset of SQL
+WRITE rec:1 CRITICAL owner:alice { "title": "Secret", "content": "..." }
+READ rec:1 AS alice
+EMBED "What is sovereignty?" INTO my_embeddings
 
--- Vector semantic search — native, no extension needed
-SELECT * FROM memories
-  VECTOR SEARCH 'recent conversations about security'
-  LIMIT 10 SIMILARITY > 0.85;
+-- Vector semantic search
+SEARCH my_embeddings NEAR "data privacy" LIMIT 5
 
--- Hybrid: relational + vector in a single query
-SELECT u.name, m.content
-  FROM users u JOIN memories m ON u.id = m.user_id
-  VECTOR SEARCH m.embedding ~ 'data breach attempt'
-  WHERE u.trust_score > 0.8
-  LIMIT 5;
-
--- Auto-embed on insert — local AI, no external API
-INSERT INTO documents (title, content)
-  VALUES ('Sovereignty Report', 'Full text here...')
-  AUTO EMBED content INTO embedding;
+-- Audit trail verification
+AUDIT rec:1
 ```
 
-> **The 15-Minute Promise:** Any developer from any background will be productive in EdisonDB within 15 minutes. If that is not true, the documentation failed — not you.
+> **The 15-Minute Promise:** Any developer from any background will be productive in EdisonDB within 15 minutes.
 
 ---
 
 ## Architecture
-
-EdisonDB is structured as a clean layered architecture. Each layer has a single, well-defined responsibility.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -219,115 +186,45 @@ EdisonDB is structured as a clean layered architecture. Each layer has a single,
 │                     QUERY ENGINE LAYER                      │
 │       EQL Parser → Planner → Optimizer → Executor           │
 ├──────────────┬──────────────┬────────────┬──────────────────┤
-│  RELATIONAL  │   DOCUMENT   │   VECTOR   │     GRAPH        │
-│  SQL Tables  │  JSON/BSON   │   HNSW     │   Trust Web      │
+│  RELATIONAL  │   DOCUMENT   │   VECTOR   │   COMPLIANCE     │
+│  SQL Tables  │  JSON/BSON   │   HNSW     │  GDPR Art.17     │
 ├──────────────┴──────────────┴────────────┴──────────────────┤
-│               INTELLIGENCE LAYER (Mnemos)                   │
-│   Auto-Embed  │  Query Learn  │  Anomaly Detect  │  AI RAG  │
+│               INTELLIGENCE LAYER                            │
+│   Sovereign Embed (offline)  │  Ollama (online fallback)    │
 ├─────────────────────────────────────────────────────────────┤
 │                   TRANSACTION LAYER                         │
-│         ACID Transactions  │  MVCC  │  WAL (Encrypted)      │
+│         WAL + MVCC  │  fjall TxKeyspace  │  Crash-safe      │
 ├─────────────────────────────────────────────────────────────┤
-│                   SECURITY LAYER (Aegis)                    │
-│    AES-256-GCM  │  Row ACL  │  Audit Trail  │  Key Vault    │
+│               ACCESS CONTROL LAYER (P3-M6)                  │
+│    Inverted Admin  │  RBAC  │  Delegation  │  Policy Rules   │
+├─────────────────────────────────────────────────────────────┤
+│                   SECURITY LAYER                            │
+│    AES-256-GCM  │  ARPi Header  │  Audit Trail  │  Key Vault │
 ├─────────────────────────────────────────────────────────────┤
 │                ADAPTIVE STORAGE ENGINE                      │
-│    LSM-Tree  │  Columnar  │  In-Memory  │  B-Tree Hybrid    │
-├──────────────┬──────────────┬────────────────────────────── ┤
-│   EMBEDDED   │    SERVER    │      DISTRIBUTED CLUSTER      │
-│  (OS/Mobile) │  (Web/API)   │      (Raft Consensus)         │
-└──────────────┴──────────────┴───────────────────────────────┘
-```
-
-### Deployment Modes
-
-A **single EdisonDB binary** detects its environment at runtime and activates the appropriate mode. No configuration required.
-
-| Mode | Target | Memory | Key Characteristics |
-|---|---|---|---|
-| **Embedded** | IoT, Mobile, Raspberry Pi, AIEONYX OS | < 8 MB | No server. Single file. Zero network surface. |
-| **Standard** | Desktop, Developer machines | < 64 MB | Full feature set. Local server. Studio UI. |
-| **Server** | Web backends, APIs, Containers | < 256 MB | Multi-user. REST + gRPC. TLS required. |
-| **Cluster** | Production distributed systems | < 1 GB/node | Raft consensus. Geo-partitioning. HA. |
-
----
-
-## EQL — EdisonDB Query Language
-
-EQL is a **strict superset of SQL**. All valid SQL is valid EQL. EQL extends SQL with native vector search, graph traversal, and AI operations.
-
-```sql
--- Graph traversal
-SELECT * FROM trust_graph
-  TRAVERSE FROM node('user_001') DEPTH 3
-  WHERE relationship = 'trusted' AND weight > 0.7;
-
--- Time-series windowing
-SELECT WINDOW(timestamp, '1h') as hour, AVG(cpu_usage)
-  FROM system_metrics
-  WHERE timestamp > NOW() - INTERVAL '24h'
-  GROUP BY hour;
-
--- AI-native: generate and store embeddings locally
-INSERT INTO docs (title, content)
-  VALUES ('Report', 'Full text...')
-  AUTO EMBED content INTO embedding;
+│    LSM-Tree (fjall)  │  HNSW Vector  │  redb Session Store  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Performance Targets
+## Sovereign Innovations (Phase 3)
 
-| Operation | Embedded | Server | Cluster |
-|---|---|---|---|
-| Single row read (PK lookup) | < 0.1 ms | < 0.5 ms | < 2 ms |
-| Vector ANN search (1M vectors) | < 5 ms | < 10 ms | < 25 ms |
-| Hybrid relational + vector query | < 15 ms | < 30 ms | < 75 ms |
-| Full-text search (1M documents) | < 10 ms | < 20 ms | < 50 ms |
-| Auto-embedding (1K char document) | < 100 ms | < 100 ms | < 150 ms |
-| Concurrent reads | — | 10,000+ | 100,000+ |
+### Inverted Admin Model
+The owner is always supreme. No admin, no DBA, no root can read your CRITICAL or PERSONAL data without your explicit delegation. Five roles (Owner, Reader, Writer, Auditor, Admin), delegation with time-bound expiry, explicit Deny rules that override Allow.
 
-Single binary size: **< 15 MB**. No runtime dependencies. No installers.
+### ARPi Provenance Header
+Every EdisonDB response carries a 78-byte header: data tier, audit chain hash, record count, timestamp, and SHA-256 integrity seal. Receiving nodes can verify data origin without trusting the transport layer.
 
----
+### Sovereign Offline Embeddings
+128-dimensional hash projection embeddings — deterministic, offline, zero network, zero model files. The same text always produces the same vector. Auto-selects Ollama when available, falls back to sovereign mode silently.
 
-## Security — Always On
-
-EdisonDB treats security not as a feature you configure, but as **a property of existence**.
-
-- **AES-256-GCM encryption at rest** — always on, cannot be disabled, zero opt-out
-- **TLS 1.3** — mandatory for all network communication in Server and Cluster modes
-- **Cryptographic Write-Ahead Log** — every write is signed and tamper-evident
-- **Zero-trust access model** — every query authenticated, every result authorized
-- **Row-level and column-level access control** — fine-grained permissions
-- **Air-gap compatible** — operates with zero network connectivity, including all security functions
-
-> *"A database that asks you to configure security has already failed you. EdisonDB is secure before you write your first line of code."*
-
----
-
-## AI-Native Features
-
-EdisonDB treats intelligence as a **native property of data**, not an external tool.
-
-| Feature | Phase | Description |
-|---|---|---|
-| Native vector columns | 1 | `vector(n)` as a first-class column type |
-| HNSW vector indexing | 1 | Sub-millisecond approximate nearest-neighbor search |
-| Auto-embedding pipeline | 1 | INSERT triggers local AI — no external API |
-| Semantic search (EQL) | 1 | `VECTOR SEARCH` syntax natively in EQL |
-| Hybrid relational + vector | 1 | Combine SQL filters with semantic search in one query |
-| RAG storage model | 1 | Unified doc + embedding + metadata for LLM pipelines |
-| Intelligent query planner | 2 | Learns usage patterns, auto-optimizes over time |
-| Anomaly detection | 2 | ML-based detection of unusual access patterns |
-
-All AI inference uses **local models only** (Phi-3 Mini, Llama 3.2). No query, document, or embedding ever leaves your machine for AI processing.
+### GDPR Art.17 Compliance
+`erasure_report(owner)` — dry-run right-to-erasure: lists all records and audit entries for an owner. Retention policy per tier (Critical 7yr, Personal 3yr, Noise 90d). Full compliance report with violation detection.
 
 ---
 
 ## Community Promise
-
-The following seven promises are made to every person who uses, builds on, or contributes to EdisonDB. **These promises are irrevocable.**
 
 | # | Promise |
 |---|---|
@@ -345,118 +242,55 @@ The following seven promises are made to every person who uses, builds on, or co
 
 ## Roadmap
 
-| Phase | Timeline | Milestone | Key Deliverables |
-|---|---|---|---|
-| **Phase 1 — Alpha** | Month 1–9 | EdisonDB 0.1 Alpha | EQL parser, routing layer, AES-256 encryption, edctl CLI, Rust SDK, Apache 2.0 release |
-| **Phase 2 — Beta** | Month 10–18 | EdisonDB 0.5 Beta ✅ | LSM-tree (fjall), HNSW vector index, auto-embedding, REST server, Python + TS SDKs, EdisonDB Studio |
-| **Phase 3 — Stable** | Month 19–30 | EdisonDB 1.0 | Full production engine, all SDKs, distributed cluster (Raft), migration toolkit, compliance tooling |
-| **Phase 4 — Scale** | Year 3+ | EdisonDB 2.0 | Horizontal auto-scaling, geo-partitioning, AI query planner v2, enterprise security suite |
+| Phase | Milestone | Status |
+|---|---|---|
+| **Phase 1 — Alpha** | EQL parser, encryption, edctl CLI, Rust SDK | ✅ Complete |
+| **Phase 2 — Beta** | LSM-tree, HNSW, auto-embedding, REST, Studio, Python+TS SDKs | ✅ Complete — v0.5.0-beta |
+| **Phase 3 — Stable** | WAL+MVCC, gRPC, ARPi, offline embeddings, RBAC, migration, compliance | ✅ Complete — v0.6.0-p3m9 |
+| **Phase 4 — Scale** | Raft distributed consensus, horizontal auto-scaling, geo-partitioning | 🔵 Planned |
 
 ---
 
 ## Platform Support
 
-| Platform | Architecture | Mode | Status |
-|---|---|---|---|
-| Linux (Ubuntu 20.04+, Debian, Fedora, Arch) | x86_64, ARM64 | All modes | ✅ Tier 1 |
-| macOS (12+) | x86_64, Apple Silicon | All modes | ✅ Tier 1 |
-| Raspberry Pi (3, 4, 5) | ARM64, ARMv7 | Embedded + Standard | ✅ Tier 1 |
-| AIEONYX OS | x86_64, ARM64, RISC-V | All modes | ✅ Primary target |
-| Windows 10/11 | x86_64 | Standard + Server | 🟡 Tier 2 |
-| Android (10+) | ARM64 | Embedded | 🟡 Tier 2 |
-| iOS (15+) | ARM64 | Embedded | 🟡 Tier 2 |
-| WebAssembly | wasm32 | Embedded | 🟡 Tier 2 |
-
----
-
-## Technology Stack
-
-| Component | Technology | Rationale |
+| Platform | Architecture | Status |
 |---|---|---|
-| Primary language | Rust (2021 edition) | Memory safety, zero-cost abstractions, WASM target |
-| Async runtime | Tokio | Industry-standard async Rust |
-| Encryption | `ring` crate (BoringSSL-based) | FIPS-validated. Rust-native. Audited. |
-| TLS | `rustls` | Pure Rust TLS. No OpenSSL. No C in the crypto path. |
-| AI inference | `candle` (HuggingFace Rust) | Run Phi-3 and Llama locally in pure Rust. No Python runtime. |
-| gRPC | `tonic` | Pure Rust gRPC. Tokio-native async. |
-| Query parsing | `pest` | Fast, safe grammar definitions for EQL. |
-| Testing | `cargo test` + `proptest` + `criterion` | Unit, property-based, and benchmark testing. |
-
----
-
-## AIEONYX Platform Integration
-
-EdisonDB is the universal data engine of the **AIEONYX Platform** — a security-first, AI-native operating system built on seL4 and Rust, currently in early development. Within AIEONYX, EdisonDB powers every core module:
-
-| AIEONYX Module | EdisonDB Role |
-|---|---|
-| **Aegis** (Security) | Cryptographic primitives, key management, audit trail |
-| **Mnemos** (AI Memory) | Vector + relational hybrid memory store |
-| **Focus** (Productivity) | Tasks, schedules, user context |
-| **TrustGraph** | Native graph tables for trust path resolution |
-| **Commons** (Community repo) | Package metadata, ratings, download stats |
-| **apm** (Package Manager) | Package registry and dependency graph |
-
-EdisonDB also operates as a **fully independent project** — usable on any OS, by any developer, for any application.
-
-→ Follow AIEONYX development: [github.com/aieonyx](https://github.com/aieonyx)
+| Linux (Ubuntu 20.04+, Debian, Fedora) | x86_64, ARM64 | ✅ Tier 1 |
+| macOS (12+) | x86_64, Apple Silicon | ✅ Tier 1 |
+| AIEONYX OS / BASTION | x86_64, ARM64 | ✅ Primary target |
+| Raspberry Pi (3, 4, 5) | ARM64, ARMv7 | ✅ Tier 1 |
+| Windows 10/11 | x86_64 | 🟡 Tier 2 |
 
 ---
 
 ## Contributing
 
-EdisonDB is built in the open. All contributions — code, documentation, bug reports, translations, and ideas — are welcome.
-
 ```bash
-# Clone the repo (source code arriving with Phase 1)
 git clone https://github.com/aieonyx/edisondb
 cd edisondb
 cargo build
-cargo test --all-features
+cargo test --test p3m9_compliance_tests -- --test-threads=1
 ```
 
-**Quality gates for all contributions:**
-- All tests pass (`cargo test --all-features`)
-- No unsafe code without documented justification
-- No performance regressions > 5% in benchmark suite
-- Clippy passes with zero warnings (pedantic mode)
-- All public API documented
+All contributions welcome — code, documentation, bug reports, translations.
 
-→ Join the discussion: [github.com/aieonyx/edisondb/discussions](https://github.com/aieonyx/edisondb/discussions)
-
----
-
-## Documentation
-
-> Documentation is being built alongside the engine. All docs will be published with EdisonDB 0.1 Alpha.
-
-- [Technical Design Specification](./docs/TECHNICAL_SPEC.md)
-- [Community Promise & Charter](./COMMUNITY_PROMISE.md)
-- EQL Language Reference *(coming Phase 1)*
-- API Reference *(coming Phase 1)*
-- Getting Started Guide *(coming Phase 1)*
+→ [github.com/aieonyx/edisondb/discussions](https://github.com/aieonyx/edisondb/discussions)
 
 ---
 
 ## License
 
-EdisonDB Core is licensed under the **Apache License 2.0**.
-
-This license will **never** be changed to a more restrictive license. This is Promise II of the Community Promise, and it is irrevocable.
-
-See [LICENSE](./LICENSE) for the full license text.
+EdisonDB Core is licensed under the **Apache License 2.0** — forever. This is Promise II of the Community Promise, and it is irrevocable.
 
 ---
 
 <div align="center">
 
-**Built by Edison. For the world. Powered by AIEONYX.**
+**Built by Edison Lepiten. For the world. Powered by AIEONYX.**
 
-*Apache License 2.0 · © 2026 AIEONYX / EdisonDB*
+*Apache License 2.0 · © 2026 Edison Lepiten / AIEONYX*
 
 [github.com/aieonyx](https://github.com/aieonyx)
-
-<br/>
 
 *"Light for your data."*
 
