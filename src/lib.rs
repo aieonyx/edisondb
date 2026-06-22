@@ -650,3 +650,4 @@ mod tests {
     }
 }
 pub mod sovereign_embed;
+pub mod arpi;
