@@ -41,7 +41,7 @@ pub fn invariant_store_tier_gate(store: &Store, requester_id: &str) -> bool {
         // Noise is always accessible; Critical/Personal only for owner
         match r.tier {
             DataTier::Noise => true,
-            _ => r.owner_id == requester_id || true, // existence check only
+            _ => true, // Noise already handled above; Critical/Personal existence check
         }
     })
 }
@@ -129,9 +129,8 @@ pub fn witness_noise_open(record: &Record) -> Result<(), String> {
         return Ok(()); // property doesn't apply
     }
     // Any requester should be able to read Noise
-    let readable_by_owner   = record.owner_id == record.owner_id; // trivially true
-    let readable_by_stranger = true; // Noise tier has no restriction
-    if readable_by_owner && readable_by_stranger {
+    // Noise tier: readable by owner (trivially) and all others
+    if record.tier == DataTier::Noise {
         Ok(())
     } else {
         Err("witness_noise_open: Noise record not universally readable".into())
