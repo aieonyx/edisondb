@@ -1,6 +1,6 @@
 [package]
 name = "edisondb"
-version = "0.6.0-p3m8"
+version = "0.6.0-p3m9"
 edition = "2024"
 description = "The sovereign, AI-native, multi-model database engine. Encrypted by default. Yours forever."
 license = "Apache-2.0"
