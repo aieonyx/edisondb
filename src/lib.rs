@@ -653,3 +653,4 @@ pub mod sovereign_embed;
 pub mod arpi;
 pub mod policy;
 pub mod migration;
+pub mod verification;
