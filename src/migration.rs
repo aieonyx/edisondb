@@ -5,7 +5,7 @@
 // Line 0: header  {"edm":1,"exported_at":N,"record_count":N,"owner_filter":"..|null"}
 // Line 1+: record {"id":"..","tier":"..","owner_id":"..","payload_hex":"..","salt_hex":"..","created_at":N}
 
-use crate::{Record, DataTier, EdisonError, now_secs};
+use crate::{Record, DataTier, now_secs};
 use serde::{Deserialize, Serialize};
 
 // ── .edm format ───────────────────────────────────────────────────────────────

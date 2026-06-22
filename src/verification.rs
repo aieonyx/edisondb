@@ -156,7 +156,7 @@ pub fn witness_critical_owner_only(record: &Record, requester: &str) -> Result<(
 pub fn witness_write_read_consistency(
     store: &mut Store,
     record: Record,
-    requester_id: &str,
+    _requester_id: &str,
 ) -> Result<(), String> {
     let id = record.id.clone();
     let owner = record.owner_id.clone();
