@@ -10,7 +10,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Run tests (excluding network-dependent)
-        run: cargo test --verbose -- --test-threads=1
-      - name: Clippy (warnings allowed)
+      - name: Run unit tests (excluding gRPC integration)
+        run: cargo test --verbose --lib -- --test-threads=1
+      - name: Run integration tests (excluding gRPC)
+        run: |
+          cargo test --verbose --test p3m4_embed_tests -- --test-threads=1
+          cargo test --verbose --test p3m5_arpi_tests -- --test-threads=1
+          cargo test --verbose --test p3m6_policy_tests -- --test-threads=1
+          cargo test --verbose --test p3m7_migration_tests -- --test-threads=1
+          cargo test --verbose --test p3m8_verification_tests -- --test-threads=1
+          cargo test --verbose --test p3m9_compliance_tests -- --test-threads=1
+      - name: Clippy
         run: cargo clippy -- -W warnings
