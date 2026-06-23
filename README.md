@@ -122,9 +122,33 @@ Right now it's just me coding this after my day job. The philosophy is set in st
 
 EdisonDB is a **sovereign, AI-native, multi-model database engine** — built in Rust, designed for a world where your data belongs to you and intelligence belongs inside the engine, not in an external API.
 
+It occupies a different design point than every existing database: **sovereignty and verifiable security are first-class engineering properties**, not add-ons bolted on after the fact.
+
+---
+
+## How EdisonDB Compares
+
 <p align="center">
-  <img src="assets/edisondb_comparison.svg" alt="EdisonDB vs other databases" />
+  <img src="assets/edisondb_comparison.svg" alt="EdisonDB vs Qdrant, LanceDB, SurrealDB, PostgreSQL, MySQL, MongoDB" />
 </p>
+
+| Symbol | Meaning |
+|:---:|---|
+| ✦ | Full / natively supported |
+| ◑ | Partial — requires plugin, extension, or external service |
+| ✕ | Not supported |
+| ★ | EdisonDB-unique — no equivalent exists in any compared system |
+
+**★ Unique capabilities no other database has:**
+- **Inverted Admin Model** — no superuser, no god-mode. Owner is always supreme.
+- **ARPi 78-byte provenance header** — cryptographic data origin baked into every row.
+- **seL4 microkernel isolation** — hardware-enforced process boundaries (ASL track).
+- **Formal verification (Kani)** — safety-critical paths mathematically verified.
+- **AI data tier classification** — Critical / Personal / Noise at the storage layer.
+- **Digital Legacy** — native data inheritance and post-mortem access policies.
+- **Local-only embedding pipeline** — full vector AI, fully air-gapped, zero cloud.
+
+> ◑ EdisonDB horizontal clustering is in active development (Phase 4 roadmap).
 
 ---
 
