@@ -122,13 +122,9 @@ Right now it's just me coding this after my day job. The philosophy is set in st
 
 EdisonDB is a **sovereign, AI-native, multi-model database engine** — built in Rust, designed for a world where your data belongs to you and intelligence belongs inside the engine, not in an external API.
 
-| Other databases | EdisonDB |
-|---|---|
-| Bolt AI on as an afterthought | AI is woven into the storage engine itself |
-| Encryption is a feature you configure | Encryption is a property of existence — always on |
-| Require cloud connectivity for intelligence | All AI inference runs locally, on your machine |
-| Change licenses when profit demands it | Apache 2.0 forever — legally irrevocable |
-| Call home to measure your usage | Zero telemetry. Zero exceptions. |
+<p align="center">
+  <img src="assets/edisondb_comparison.svg" alt="EdisonDB vs other databases" />
+</p>
 
 ---
 
