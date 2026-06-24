@@ -22,7 +22,7 @@ Built in Rust. Encrypted by default. Yours forever.
 
 <br/>
 
-**S4+i** &nbsp;·&nbsp; Security &nbsp;·&nbsp; Speed &nbsp;·&nbsp; Sovereignty &nbsp;·&nbsp; Simplicity &nbsp;·&nbsp; Intelligence
+**AIEONYX PHILOSOPHY S4+i FRAMEWORK**
 
 <br/>
 
