@@ -1,0 +1,92 @@
+# EdisonDB — Cargo.toml CORRECTED patch for Phase M1 (mobile feature)
+# Copyright (c) 2026 Edison Lepiten / AIEONYX
+# License: Apache-2.0
+#
+# Apply these targeted changes to the ACTUAL v0.6.0 Cargo.toml.
+# The current repo has no [lib] section and tonic/prost are NOT optional.
+# These are the only changes needed.
+
+# ─── CHANGE 1 — Add [lib] section (does not exist yet) ───────────────────────
+#
+# Add this block BEFORE the existing [[bin]] entries:
+#
+# [lib]
+# name       = "editsondb"
+# path       = "src/lib.rs"
+# crate-type = ["cdylib", "rlib"]
+#
+# Why: cargo-ndk needs cdylib to produce libeditsondb.so.
+#      rlib keeps the two [[bin]] entries compiling as before.
+#      src/lib.rs already exists — this just exposes it as a crate target.
+
+# ─── CHANGE 2 — Add [features] section (does not exist yet) ──────────────────
+#
+# Add this block after [package]:
+#
+# [features]
+# default = ["server"]
+# server  = ["tonic", "prost", "tonic-build"]
+# mobile  = ["jni"]
+#
+# Nothing else changes — the [[bin]] entries inherit default features
+# so edisondb and edisondb-server still compile exactly as before.
+
+# ─── CHANGE 3 — Make tonic/prost/tonic-build optional ────────────────────────
+#
+# In [dependencies], change:
+#   tonic = "0.14"
+#   prost = "0.14"
+# To:
+#   tonic = { version = "0.14", optional = true }
+#   prost = { version = "0.14", optional = true }
+#
+# In [build-dependencies], change:
+#   tonic-build = "0.14"
+# To:
+#   tonic-build = { version = "0.14", optional = true }
+#
+# Why: the mobile feature must not compile the gRPC stack.
+#      cargo-ndk for Android will fail on tonic's network deps.
+
+# ─── CHANGE 4 — Add jni dependency ───────────────────────────────────────────
+#
+# In [dependencies], add:
+#   jni = { version = "0.21", features = ["invocation"], optional = true }
+#
+# This is only pulled in under the mobile feature.
+
+# ─── CHANGE 5 — Add android logger (target-gated) ────────────────────────────
+#
+# Add this new section anywhere after [dependencies]:
+#
+# [target.'cfg(target_os = "android")'.dependencies]
+# log            = "0.4"
+# android_logger = "0.13"
+#
+# Wires Rust log output to adb logcat during development.
+
+# ─── CHANGE 6 — Gate mobile modules in src/lib.rs ────────────────────────────
+#
+# At the bottom of src/lib.rs, add:
+#
+#   #[cfg(feature = "mobile")]
+#   pub mod mobile;        // points to src/mobile/mod.rs  (= mobile_db.rs content)
+#   #[cfg(feature = "mobile")]
+#   mod ffi;               // points to src/mobile/ffi.rs
+#   #[cfg(feature = "mobile")]
+#   mod jni_bridge;        // points to src/mobile/jni_bridge.rs
+#
+# File layout to create:
+#   src/mobile/mod.rs        ← rename mobile_db.rs to this
+#   src/mobile/ffi.rs        ← ffi.rs as downloaded
+#   src/mobile/jni_bridge.rs ← jni_bridge.rs as downloaded
+
+# ─── Result — build commands after all changes applied ───────────────────────
+#
+# Existing server build (unchanged):
+#   cargo build --release
+#
+# Mobile .so build:
+#   cargo ndk -t arm64-v8a -t x86_64 \
+#     -o ../aistop/app/src/main/jniLibs \
+#     build --release --features mobile --no-default-features
