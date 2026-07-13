@@ -20,7 +20,7 @@ pub struct DbHandle {
 
 /// Open (or create) an EdisonDB embedded store at `path`.
 /// Returns null on failure. Caller must call `edisondb_close` to free.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_open(path: *const c_char) -> *mut DbHandle {
     if path.is_null() {
         return std::ptr::null_mut();
@@ -40,7 +40,7 @@ pub unsafe extern "C" fn edisondb_open(path: *const c_char) -> *mut DbHandle {
 /// Insert `value` at `key`.
 /// `arpi_header` must point to exactly 78 bytes (ARPi provenance header).
 /// Returns 0 on success, negative error code on failure.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_insert(
     db: *mut DbHandle,
     key: *const c_char,
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn edisondb_insert(
 /// Query the value for `key`.
 /// Returns a malloc'd C string that must be freed with `edisondb_free_string`.
 /// Returns null if not found or on error.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_query(
     db: *mut DbHandle,
     key: *const c_char,
@@ -101,7 +101,7 @@ pub unsafe extern "C" fn edisondb_query(
 
 /// Delete the entry at `key`.
 /// Returns 0 on success, -1 if not found, negative on error.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_delete(
     db: *mut DbHandle,
     key: *const c_char,
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn edisondb_delete(
 
 /// Close the database and free the handle.
 /// After this call `db` is invalid; do not use it.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_close(db: *mut DbHandle) {
     if !db.is_null() {
         drop(Box::from_raw(db));
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn edisondb_close(db: *mut DbHandle) {
 }
 
 /// Free a string previously returned by `edisondb_query`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn edisondb_free_string(s: *mut c_char) {
     if !s.is_null() {
         drop(CString::from_raw(s));

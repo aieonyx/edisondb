@@ -11,8 +11,8 @@
 
 #![allow(non_snake_case, clippy::missing_safety_doc)]
 
-use jni::objects::{JClass, JString};
-use jni::sys::{jboolean, jbyteArray, jint, jlong, jstring, JNI_TRUE};
+use jni::objects::{JByteArray, JClass, JString};
+use jni::sys::{jint, jlong, jstring};
 use jni::JNIEnv;
 
 use super::ffi::{
@@ -21,7 +21,7 @@ use super::ffi::{
 };
 
 /// com.aieonyx.edisondb.EdisonDbAndroid.nativeOpen(path: String): Long
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeOpen(
     mut env: JNIEnv,
     _class: JClass,
@@ -39,7 +39,7 @@ pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeOp
 }
 
 /// com.aieonyx.edisondb.EdisonDbAndroid.nativeClose(handle: Long)
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeClose(
     _env: JNIEnv,
     _class: JClass,
@@ -49,14 +49,14 @@ pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeCl
 }
 
 /// com.aieonyx.edisondb.EdisonDbAndroid.nativeInsert(handle, key, value, arpi): Int
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeInsert(
     mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
     key: JString,
     value: JString,
-    arpi: jbyteArray,
+    arpi: JByteArray,
 ) -> jint {
     let db = handle as *mut super::ffi::DbHandle;
 
@@ -93,7 +93,7 @@ pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeIn
 }
 
 /// com.aieonyx.edisondb.EdisonDbAndroid.nativeQuery(handle, key): String?
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeQuery(
     mut env: JNIEnv,
     _class: JClass,
@@ -124,7 +124,7 @@ pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeQu
 }
 
 /// com.aieonyx.edisondb.EdisonDbAndroid.nativeDelete(handle, key): Int
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "system" fn Java_com_aieonyx_edisondb_EdisonDbAndroid_nativeDelete(
     mut env: JNIEnv,
     _class: JClass,
