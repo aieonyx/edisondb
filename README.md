@@ -5,10 +5,11 @@
 <div align="center">
 
 ![CI](https://github.com/aieonyx/edisondb/actions/workflows/ci.yml/badge.svg)
-<img src="https://img.shields.io/badge/EdisonDB-v0.6.0--p3m9-gold?style=for-the-badge" alt="version"/>
+<img src="https://img.shields.io/badge/EdisonDB-v0.6.0--mobile-gold?style=for-the-badge" alt="version"/>
 <img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="license"/>
 <img src="https://img.shields.io/badge/Language-Rust-orange?style=for-the-badge&logo=rust" alt="rust"/>
 <img src="https://img.shields.io/badge/Phase%203-Complete-brightgreen?style=for-the-badge" alt="phase 3"/>
+<img src="https://img.shields.io/badge/Android-Mobile%20SDK-3DDC84?style=for-the-badge&logo=android" alt="android"/>
 <img src="https://img.shields.io/badge/Telemetry-Zero-red?style=for-the-badge" alt="zero telemetry"/>
 
 <br/><br/>
@@ -26,13 +27,66 @@ Built in Rust. Encrypted by default. Yours forever.
 
 <br/>
 
-[Quick Start](#quick-start) · [What's New](#whats-new--phase-3-complete) · [Architecture](#architecture) · [Community Promise](#community-promise) · [Roadmap](#roadmap)
+[Quick Start](#quick-start) · [What's New](#whats-new--android-mobile-sdk) · [Phase 3](#phase-3-complete) · [Architecture](#architecture) · [Community Promise](#community-promise) · [Roadmap](#roadmap)
 
 </div>
 
 ---
 
-## What's New — Phase 3 Complete ✅
+## What's New — Android Mobile SDK 🤖
+
+**EdisonDB v0.6.0-mobile** — July 2026.
+
+EdisonDB expands beyond the server into **Android embedded storage**.
+No gRPC. No network. Sovereign storage running natively on Android via JNI,
+integrated into [AI Stop](https://github.com/aieonyx/aistop) — a privacy guard
+app that intercepts data sent to AI apps.
+
+Every AI exposure event logged by AI Stop now carries an **ARPi provenance header**
+— 78 bytes of tamper-evident, BLAKE3-signed, monotonically-counted sovereignty
+on every single write. On a real device. In production.
+
+| Mobile Milestone | Deliverable | Status |
+|---|---|---|
+| **M1** | Rust FFI bridge — C-ABI exports, JNI symbols, `mobile` feature flag | ✅ |
+| **M1** | `libedisondb.so` cross-compiled for `arm64-v8a` + `x86_64` via cargo-ndk | ✅ |
+| **M2** | Kotlin SDK — `EdisonDbAndroid`, `ArpiHeader`, `EdisonDbExposureDao` | ✅ |
+| **M3** | AI Stop integration — Room replaced, ARPi on every exposure event | ✅ |
+
+### Mobile Sovereign Guarantees
+
+| Guarantee | Mechanism |
+|---|---|
+| **Provenance** | ARPi 78-byte header on every write (tier=Critical for AI exposure events) |
+| **Integrity** | BLAKE3 content hash per record |
+| **Confidentiality** | AES-256-GCM at rest via Android Keystore |
+| **Non-repudiation** | Ed25519 export signing |
+| **GDPR Art.17** | Key destruction = cryptographic erasure |
+
+### Android Targets
+
+| ABI | Triple | Device |
+|---|---|---|
+| `arm64-v8a` | `aarch64-linux-android` | Samsung S20 Ultra (primary) |
+| `x86_64` | `x86_64-linux-android` | Emulator |
+
+### Mobile Feature Flag
+
+```bash
+# Build embedded .so (no gRPC, no server)
+cargo ndk -t arm64-v8a -t x86_64 \
+  build --release --features mobile --no-default-features --lib
+
+# Server build unchanged
+cargo build --release
+```
+
+See `mobile/android-sdk/` for the Kotlin SDK source.
+See `MOBILE.md` for the full implementation guide.
+
+---
+
+## Phase 3 Complete ✅
 
 **EdisonDB v0.6.0-p3m9** — Phase 3 is complete as of June 2026.
 
@@ -78,6 +132,8 @@ All Phase 2 + Phase 3 deliverables implemented, tested, and live.
 | **Compliance Tooling** — GDPR Art.17 erasure, retention policy, audit report | ✅ |
 | **Formal Verification Hooks** — invariant checkers, Kani harnesses | ✅ |
 | **REST Server** — Axum/Tokio, 8 endpoints + /studio dashboard | ✅ |
+| **Android Mobile SDK** — embedded mode, JNI bridge, `libedisondb.so` | ✅ |
+| **ARPi on Android** — 78-byte provenance header on every mobile write | ✅ |
 | **Python SDK** — `pip install edisondb`, full async-ready client | ✅ |
 | **TypeScript SDK** — `npm install edisondb`, full typed client | ✅ |
 | **EdisonDB Studio** — sovereign dark dashboard, all panels, live data | ✅ |
