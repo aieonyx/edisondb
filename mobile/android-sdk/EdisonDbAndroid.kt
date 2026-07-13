@@ -2,8 +2,8 @@
 // License: Apache-2.0
 //
 // EdisonDbAndroid — singleton JNI wrapper for EdisonDB embedded on Android.
-// Manages the native DbHandle lifecycle; all calls are thread-safe via
-// the underlying Rust Mutex<MobileDb>.
+// Loads libedisondb.so (arm64-v8a or x86_64 via ABI split).
+// Thread-safe: underlying Rust layer uses Mutex<MobileDb>.
 
 package com.aieonyx.edisondb
 
@@ -13,11 +13,10 @@ import java.io.File
 
 object EdisonDbAndroid {
 
-    private const val TAG = "EdisonDB"
-    private const val LIB_NAME = "editsondb"
+    private const val TAG      = "EdisonDB"
+    private const val LIB_NAME = "edisondb"   // → libedisondb.so
 
-    @Volatile
-    private var dbHandle: Long = 0L   // raw pointer from edisondb_open
+    @Volatile private var dbHandle: Long = 0L
 
     init {
         System.loadLibrary(LIB_NAME)
@@ -25,26 +24,18 @@ object EdisonDbAndroid {
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
-    /**
-     * Open (or create) the EdisonDB store under the app's files directory.
-     * Call once from Application.onCreate() or before first use.
-     */
     @Synchronized
     fun open(context: Context) {
         if (dbHandle != 0L) return
         val dbDir = File(context.filesDir, "edisondb").also { it.mkdirs() }
-        val path = dbDir.absolutePath
-        dbHandle = nativeOpen(path)
+        dbHandle = nativeOpen(dbDir.absolutePath)
         if (dbHandle == 0L) {
-            Log.e(TAG, "Failed to open EdisonDB at $path")
+            Log.e(TAG, "Failed to open EdisonDB at ${dbDir.absolutePath}")
             throw IllegalStateException("EdisonDB open failed")
         }
-        Log.i(TAG, "EdisonDB opened at $path")
+        Log.i(TAG, "EdisonDB opened at ${dbDir.absolutePath}")
     }
 
-    /**
-     * Close the database. Call from Application.onTerminate() or test teardown.
-     */
     @Synchronized
     fun close() {
         if (dbHandle != 0L) {
@@ -57,34 +48,30 @@ object EdisonDbAndroid {
     // ─── Public API ───────────────────────────────────────────────────────────
 
     /**
-     * Insert [value] at [key] with an ARPi provenance header.
-     * The header is generated automatically by [ArpiHeader].
-     *
-     * @param key   Record key (e.g. exposure event UUID)
-     * @param value JSON-serialised record payload
-     * @param tier  0=Critical, 1=Personal, 2=Noise
-     * @return true on success
+     * Insert [value] at [key] with ARPi provenance header [arpi].
+     * [tier]: 0=Critical, 1=Personal, 2=Noise.
+     * Returns true on success.
      */
-    fun insert(key: String, value: String, tier: Byte = 1): Boolean {
+    fun insert(key: String, value: String, arpi: ByteArray): Boolean {
         checkOpen()
-        val header = ArpiHeader.build(value, tier)
-        val rc = nativeInsert(dbHandle, key, value, header)
-        if (rc != 0) Log.w(TAG, "insert($key) returned $rc")
+        val rc = nativeInsert(dbHandle, key, value, arpi)
+        if (rc != 0) Log.w(TAG, "insert($key) rc=$rc")
         return rc == 0
     }
 
     /**
-     * Query the value stored at [key], or null if absent.
+     * Convenience overload — builds ArpiHeader automatically.
      */
+    fun insert(key: String, value: String, tier: Byte = 1): Boolean {
+        val header = ArpiHeader.build(value, tier)
+        return insert(key, value, header)
+    }
+
     fun query(key: String): String? {
         checkOpen()
         return nativeQuery(dbHandle, key)
     }
 
-    /**
-     * Delete the record at [key].
-     * @return true if the key existed and was deleted.
-     */
     fun delete(key: String): Boolean {
         checkOpen()
         return nativeDelete(dbHandle, key) == 0
@@ -93,7 +80,9 @@ object EdisonDbAndroid {
     // ─── Internal ─────────────────────────────────────────────────────────────
 
     private fun checkOpen() {
-        check(dbHandle != 0L) { "EdisonDB is not open. Call EdisonDbAndroid.open(context) first." }
+        check(dbHandle != 0L) {
+            "EdisonDB not open — call EdisonDbAndroid.open(context) first"
+        }
     }
 
     // ─── JNI declarations ─────────────────────────────────────────────────────
