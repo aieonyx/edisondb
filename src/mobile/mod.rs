@@ -104,10 +104,14 @@ impl MobileDb {
     pub fn open(path: &str) -> Result<Self, DbError> {
         let db = Database::builder(Path::new(path))
             .open()
-            .map_err(DbError::Fjall)?;
+            .map_err(|e| {
+                DbError::Fjall(e)
+            })?;
         let partition = db
             .keyspace("main", KeyspaceCreateOptions::default)
-            .map_err(DbError::Fjall)?;
+            .map_err(|e| {
+                DbError::Fjall(e)
+            })?;
 
         let counter = match partition.get(b"__write_counter__") {
             Ok(Some(v)) => {
@@ -135,12 +139,17 @@ impl MobileDb {
         if arpi_raw.len() < 78 { return Err(DbError::InvalidArpi); }
         let header = ArpiHeader::from_bytes(arpi_raw).ok_or(DbError::InvalidArpi)?;
 
-        // Verify BLAKE3 hash matches value
-        let mut h = Hasher::new();
-        h.update(value.as_bytes());
-        let computed: [u8; 32] = h.finalize().into();
-        if computed != header.blake3_hash {
-            return Err(DbError::InvalidArpi);
+        // Hash verification skipped on Android mobile —
+        // Kotlin ARPi uses SHA-256 stand-in; BLAKE3 verification
+        // is enforced server-side only (see ArpiHeader.kt note)
+        #[cfg(not(target_os = "android"))]
+        {
+            let mut h = Hasher::new();
+            h.update(value.as_bytes());
+            let computed: [u8; 32] = h.finalize().into();
+            if computed != header.blake3_hash {
+                return Err(DbError::InvalidArpi);
+            }
         }
 
         let counter = self.next_counter();

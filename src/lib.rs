@@ -655,3 +655,7 @@ pub mod policy;
 pub mod migration;
 pub mod verification;
 pub mod compliance;
+
+// Mobile FFI — enabled only under the `mobile` feature flag
+#[cfg(feature = "mobile")]
+pub mod mobile;
