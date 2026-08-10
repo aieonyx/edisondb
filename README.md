@@ -16,6 +16,28 @@
 
 # EdisonDB
 
+
+---
+
+## 🆕 What's New
+
+**August 2026 — Formal Verification underway**
+
+EdisonDB is currently undergoing formal verification in a dedicated public
+repository: [`github.com/aieonyx/edisondb-fv`](https://github.com/aieonyx/edisondb-fv).
+
+Machine-checked proofs (using [Kani](https://github.com/model-checking/kani))
+run directly against the real production Rust code — no re-implementation —
+targeting EdisonDB's sovereignty kernel, access-control invariants,
+audit-chain integrity, and encryption boundaries. Every verified claim and
+every known open limitation is tracked publicly in the FV repository.
+
+Core EdisonDB development continues in parallel. This repo remains the
+primary codebase; the FV repo is where the proofs live.
+
+---
+
+
 ### *"Light for your data."*
 
 **The sovereign, AI-native, multi-model database engine.**
