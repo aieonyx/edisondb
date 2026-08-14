@@ -106,6 +106,14 @@ cargo build --release
 See `mobile/android-sdk/` for the Kotlin SDK source.
 See `MOBILE.md` for the full implementation guide.
 
+
+### 📲 Download AI Stop on Google Play, LIVE. POWERED BY EdisonDB
+
+> **One-time purchase. No subscription. All future updates included — forever.**
+
+[![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download%20AI%20Stop-3DDC84?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.aieonyx.aistop)
+
+
 ---
 
 ## Phase 3 Complete ✅
