@@ -2,6 +2,7 @@
 
 use super::{ClusterConfig, RaftLog};
 use crate::backends::StorageBackend;
+use std::sync::Mutex;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Role {
@@ -28,7 +29,11 @@ pub struct RaftNode {
     pub next_index: std::collections::HashMap<String, u64>,
     pub match_index: std::collections::HashMap<String, u64>,
 
-    backend: Box<dyn StorageBackend>,
+    // Wrapped in Mutex so RaftNode is Sync: StorageBackend guarantees
+    // Send but not Sync, and tonic handlers require a Sync service.
+    // Lock is only ever held for a synchronous persist — never across
+    // an await point.
+    backend: Mutex<Box<dyn StorageBackend>>,
 }
 
 impl RaftNode {
@@ -45,7 +50,7 @@ impl RaftNode {
             last_applied: 0,
             next_index: Default::default(),
             match_index: Default::default(),
-            backend,
+            backend: Mutex::new(backend),
         }
     }
 

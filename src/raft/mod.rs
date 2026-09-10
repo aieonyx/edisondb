@@ -2,11 +2,13 @@
 
 mod election;
 mod log;
+#[cfg(feature = "server")]
 mod rpc;
 mod state_machine;
 
 pub use election::ElectionTimer;
 pub use log::{RaftLog, LogEntry};
+#[cfg(feature = "server")]
 pub use rpc::RaftService;
 pub use state_machine::{RaftNode, Role};
 

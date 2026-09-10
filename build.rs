@@ -5,6 +5,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         unsafe { std::env::set_var("PROTOC", protoc_path); }
         tonic_prost_build::compile_protos("proto/edisondb.proto")?;
         println!("cargo:rerun-if-changed=proto/edisondb.proto");
+        tonic_prost_build::compile_protos("proto/raft.proto")?;
+        println!("cargo:rerun-if-changed=proto/raft.proto");
     }
     println!("cargo:rerun-if-changed=build.rs");
     Ok(())
