@@ -7,10 +7,10 @@ mod rpc;
 mod state_machine;
 
 pub use election::ElectionTimer;
-pub use log::{RaftLog, LogEntry};
+pub use log::{LogEntry, RaftLog};
 #[cfg(feature = "server")]
 pub use rpc::RaftService;
-pub use state_machine::{RaftNode, Role};
+pub use state_machine::{AppendOutcome, RaftNode, RaftState, Role, VoteOutcome};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
